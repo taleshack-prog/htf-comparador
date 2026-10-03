@@ -15,10 +15,10 @@ test('normalização: melhor = 100, pior = 0, respeitando a direção', () => {
 });
 
 test('pesos: padrão 1, aceita 0–10, ignora indicador desconhecido', () => {
-  const p = parsePesos('pib-anual:3,ipca-anual:0,xyz:5,desemprego:99', MODOS.oficial.componentes);
+  const p = parsePesos('pib-anual:3,ipca-anual:0,xyz:5,desemprego-oit-wb:99', MODOS.oficial.componentes);
   assert.equal(p['pib-anual'], 3);
   assert.equal(p['ipca-anual'], 0);
-  assert.equal(p.desemprego, 1);
+  assert.equal(p['desemprego-oit-wb'], 1);
   assert.equal(p.xyz, undefined);
 });
 
@@ -122,4 +122,14 @@ test('catálogo: WGI aparece no grupo internacional', opts, async () => {
   const { getCatalog } = await import('../lib/compare.js');
   const cat = await getCatalog(pool);
   assert.equal(cat.indicadores.find((i) => i.slug === 'controle-corrupcao-wb').grupo, 'internacional');
+});
+
+test('cobertura mínima: indicador com menos da metade dos anos não entra na nota', opts, async () => {
+  const r = await ranking(pool, { modo: 'oficial' });
+  const fhc = r.governos.find((g) => g.slug === 'fhc');
+  const prim = fhc.itens.find((i) => i.slug === 'resultado-primario-fmi');   // só 2002 de 8 anos
+  assert.equal(prim.nota, null);
+  assert.match(prim.motivo, /50%/);
+  assert.match(r.avisos.join(' '), /menos da metade dos anos/);
+  assert.ok(MODOS.oficial.componentes.some((c) => c.slug === 'desemprego-oit-wb'));
 });
