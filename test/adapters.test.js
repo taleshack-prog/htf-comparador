@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { toAnnual, windows } from '../adapters/bcb-sgs.js';
 import { quarterlyToAnnual } from '../adapters/ibge-sidra.js';
 import { parseWb } from '../adapters/worldbank.js';
-import { validate, toNumber } from '../adapters/base.js';
+import { validate, toNumber, describeError } from '../adapters/base.js';
 import { sgsMonthly, sidraPayload, wbPayload } from './helpers.js';
 
 const NOW = new Date('2026-10-03T12:00:00Z');
@@ -103,4 +103,12 @@ test('validação barra fora do catálogo, implausível, duplicada e 2026 "ofici
 
 test('validação rejeita lote vazio', () => {
   assert.equal(validate([], { indicators: new Map(), entities: new Map() }).ok, false);
+});
+
+test('erro de rede mostra a causa real e o servidor', () => {
+  const err = new TypeError('fetch failed');
+  err.cause = { code: 'ECONNRESET' };
+  assert.equal(describeError(err, 'https://api.bcb.gov.br/x'), 'fetch failed (ECONNRESET) em api.bcb.gov.br');
+  const abort = Object.assign(new Error('aborted'), { name: 'AbortError' });
+  assert.equal(describeError(abort, 'https://api.worldbank.org/v2'), 'tempo esgotado em api.worldbank.org');
 });

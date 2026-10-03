@@ -41,9 +41,9 @@ export function parseWb(payload, byIso3, now = new Date()) {
 export default {
   slug: 'worldbank',
   version: 'worldbank@1',
-  async fetch({ fetchImpl, now }) {
+  async fetch({ fetchImpl, now, log }) {
     const out = {};
-    for (const s of SERIES) out[s.codigo] = await fetchJson(wbUrl(s.codigo, now.getUTCFullYear()), { fetchImpl });
+    for (const s of SERIES) out[s.codigo] = await fetchJson(wbUrl(s.codigo, now.getUTCFullYear()), { fetchImpl, log });
     return out;
   },
   normalize(raw, { catalog, now }) {

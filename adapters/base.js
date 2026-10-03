@@ -16,17 +16,35 @@ const BOUNDS = {
   'km²':    [0, 100000],
 };
 
-export async function fetchJson(url, { fetchImpl = fetch, timeoutMs = 20000, retries = 2 } = {}) {
+export const USER_AGENT = 'Prumo/0.1 (Hack Tech Farm; +https://hacktechfarm.com.br)';
+
+// Descreve o erro com a causa real (o "fetch failed" do Node esconde o motivo em err.cause).
+export function describeError(err, url) {
+  const host = (() => { try { return new URL(url).host; } catch { return url; } })();
+  if (err?.name === 'AbortError') return `tempo esgotado em ${host}`;
+  const c = err?.cause;
+  const cause = c ? (c.code || c.message || String(c)) : null;
+  return cause ? `${err.message} (${cause}) em ${host}` : `${err?.message || err} em ${host}`;
+}
+
+export async function fetchJson(url, { fetchImpl = fetch, timeoutMs = 20000, retries = 2, log = () => {} } = {}) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const started = Date.now();
     try {
-      const res = await fetchImpl(url, { signal: ctrl.signal, headers: { Accept: 'application/json' } });
-      if (!res.ok) throw new Error(`HTTP ${res.status} em ${url}`);
-      return await res.json();
+      const res = await fetchImpl(url, {
+        signal: ctrl.signal,
+        headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = await res.json();
+      log(`  ok ${((Date.now() - started) / 1000).toFixed(1)}s ${url}`);
+      return body;
     } catch (err) {
-      lastErr = err;
+      lastErr = new Error(describeError(err, url));
+      log(`  tentativa ${attempt + 1}/${retries + 1} falhou: ${lastErr.message}`);
       if (attempt < retries) await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
     } finally {
       clearTimeout(timer);
@@ -108,9 +126,10 @@ export async function runAdapter(adapter, { pool, fetchImpl = fetch, now = new D
     'UPDATE ingestion_run SET status=$2, gravadas=$3, detalhe=$4, terminado_em=NOW() WHERE id=$1',
     [run.id, status, gravadas, detalhe ? String(detalhe).slice(0, 2000) : null]);
 
+  log(`${adapter.slug}: consultando a fonte…`);
   try {
     const catalog = await loadCatalog(pool);
-    const ctx = { fetchImpl, now, catalog };
+    const ctx = { fetchImpl, now, catalog, log };
     const raw = await adapter.fetch(ctx);
     const obs = adapter.normalize(raw, ctx);
     const v = validate(obs, catalog, { now });

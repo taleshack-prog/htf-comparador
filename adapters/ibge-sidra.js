@@ -39,9 +39,9 @@ export function quarterlyToAnnual(rows, now = new Date()) {
 export default {
   slug: 'ibge-sidra',
   version: 'ibge-sidra@1',
-  async fetch({ fetchImpl }) {
+  async fetch({ fetchImpl, log }) {
     const out = {};
-    for (const s of SERIES) out[s.tabela] = await fetchJson(sidraUrl(s.tabela, s.variavel), { fetchImpl });
+    for (const s of SERIES) out[s.tabela] = await fetchJson(sidraUrl(s.tabela, s.variavel), { fetchImpl, log });
     return out;
   },
   normalize(raw, { now }) {

@@ -71,13 +71,13 @@ export function toAnnual(points, tipo, now = new Date()) {
 export default {
   slug: 'bcb-sgs',
   version: 'bcb-sgs@1',
-  async fetch({ fetchImpl, now }) {
+  async fetch({ fetchImpl, now, log }) {
     const year = now.getUTCFullYear();
     const result = {};
     for (const s of SERIES) {
       const points = [];
       for (const [ini, fim] of windows(FIRST_YEAR, year)) {
-        const data = await fetchJson(sgsUrl(s.codigo, ini, fim), { fetchImpl });
+        const data = await fetchJson(sgsUrl(s.codigo, ini, fim), { fetchImpl, log });
         if (!Array.isArray(data)) throw new Error(`SGS ${s.codigo}: resposta inesperada`);
         points.push(...data);
       }
