@@ -19,6 +19,7 @@ body {
 }
 .wrap { max-width: 720px; margin: 0 auto; padding: 72px 16px; }
 .kicker { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 13px; }
-h1 { color: var(--brasil); line-height: 1.2; margin: 8px 0 16px; }
+h1 { color: var(--brasil); line-height: 1.1; margin: 8px 0 4px; font-size: 48px; letter-spacing: -.01em; }
+.tagline { margin: 0 0 24px; font-size: 20px; font-weight: 600; }
 .lead { font-size: 18px; color: var(--muted); }
 a { color: var(--brasil); }

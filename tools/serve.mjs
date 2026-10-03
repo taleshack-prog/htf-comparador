@@ -72,4 +72,4 @@ createServer(async (req, res) => {
     if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('500');
   }
-}).listen(PORT, () => console.log(`Comparador local em http://localhost:${PORT}`));
+}).listen(PORT, () => console.log(`Prumo local em http://localhost:${PORT}`));

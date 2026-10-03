@@ -1,5 +1,5 @@
 // GET /health/summary — lido pelo painel "Saúde dos apps" do site HTF.
-// Protegido por "Authorization: Bearer <MONITOR_TOKEN>" (no site: MONITOR_TOKEN_COMPARADOR).
+// Protegido por "Authorization: Bearer <MONITOR_TOKEN>" (no site: MONITOR_TOKEN_PRUMO).
 import { getPool } from '../../lib/db.js';
 import { buildSummary } from '../../lib/health.js';
 import { sendJson, hasBearer } from '../../lib/http.js';
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     pool = getPool();
   } catch (err) {
     return sendJson(res, 200, {
-      app: 'Comparador de Governos',
+      app: 'Prumo',
       status: 'down',
       detail: err.message,
       checked_at: new Date().toISOString(),

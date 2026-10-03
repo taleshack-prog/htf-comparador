@@ -1,6 +1,6 @@
-# Comparador de Governos — Brasil × Mundo
+# Prumo — governos comparados com dados oficiais
 
-App anexo ao site da Hack Tech Farm, publicado em `comparador.hacktechfarm.com.br`.
+App anexo ao site da Hack Tech Farm, publicado em `prumo.hacktechfarm.com.br`.
 Especificação: *PRD + TDD v1.3* (seções 9, 14.1, 15 e 16).
 
 Mesma filosofia do site: HTML/CSS/JS sem framework, gerado por script, e funções serverless.
@@ -55,7 +55,7 @@ npm test                      # unidade; integração exige TEST_DATABASE_URL (b
 3. **Vercel** → time `hack-tech-farm` → *Add New → Project* → este repositório.
    Build Command e Output já vêm do `vercel.json`. Variáveis: `DATABASE_URL`, `MONITOR_TOKEN`,
    `CRON_SECRET` (valores longos e aleatórios: `openssl rand -hex 32`).
-4. **Domínio**: na Vercel, *Settings → Domains → comparador.hacktechfarm.com.br*. No Registro.br,
+4. **Domínio**: na Vercel, *Settings → Domains → prumo.hacktechfarm.com.br*. No Registro.br,
    adicione o CNAME `comparador` com o valor que a Vercel mostrar. Confira depois que gravou
    (o editor de zona só adiciona/remove e mostra rascunho).
 5. **Primeira carga**: `DATABASE_URL=... npm run ingest` e confira os números contra as fontes.
@@ -63,7 +63,7 @@ npm test                      # unidade; integração exige TEST_DATABASE_URL (b
 ## Integração com o site HTF
 
 - **Painel de saúde**: no site, adicionar o app em `api/_monitor.js` com endpoint
-  `https://comparador.hacktechfarm.com.br/health/summary` e token `MONITOR_TOKEN_COMPARADOR`
+  `https://prumo.hacktechfarm.com.br/health/summary` e token `MONITOR_TOKEN_PRUMO`
   (mesmo valor do `MONITOR_TOKEN` daqui).
 - **Catálogo**: entrada `comparador` em `data/products.json` com `is_public: false` até o lançamento.
 
