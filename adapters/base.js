@@ -99,29 +99,46 @@ export async function loadCatalog(pool) {
   };
 }
 
+// Grava o lote inteiro numa única consulta (unnest de arrays): uma ida e volta ao
+// banco em vez de uma por linha — essencial com o banco a milhares de km.
 async function persist(client, observations, catalog, version) {
-  let n = 0;
+  if (!observations.length) return 0;
+  const cols = { ent: [], ind: [], ano: [], valor: [], qual: [], fonte: [], url: [] };
   for (const o of observations) {
     const ind = catalog.indicators.get(o.indicator);
-    const ent = catalog.entities.get(o.entity);
-    await client.query(
-      `INSERT INTO fact_observation
-         (entity_id, indicator_id, periodo_ano, valor, qualidade, fonte_id, url_fonte, adaptador_versao)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       ON CONFLICT (entity_id, indicator_id, periodo_ano) DO UPDATE SET
-         valor = EXCLUDED.valor, qualidade = EXCLUDED.qualidade, url_fonte = EXCLUDED.url_fonte,
-         adaptador_versao = EXCLUDED.adaptador_versao, data_coleta = NOW()`,
-      [ent.id, ind.id, o.ano, o.valor, o.qualidade, ind.fonte_id, o.url, version],
-    );
-    n++;
+    cols.ent.push(catalog.entities.get(o.entity).id);
+    cols.ind.push(ind.id);
+    cols.ano.push(o.ano);
+    cols.valor.push(o.valor);
+    cols.qual.push(o.qualidade);
+    cols.fonte.push(ind.fonte_id);
+    cols.url.push(o.url);
   }
-  return n;
+  const { rowCount } = await client.query(
+    `INSERT INTO fact_observation
+       (entity_id, indicator_id, periodo_ano, valor, qualidade, fonte_id, url_fonte, adaptador_versao)
+     SELECT e, i, a, v, q::qualidade_enum, f, u, $8
+     FROM unnest($1::int[], $2::int[], $3::int[], $4::numeric[], $5::text[], $6::int[], $7::text[])
+          AS t(e, i, a, v, q, f, u)
+     ON CONFLICT (entity_id, indicator_id, periodo_ano) DO UPDATE SET
+       valor = EXCLUDED.valor, qualidade = EXCLUDED.qualidade, url_fonte = EXCLUDED.url_fonte,
+       adaptador_versao = EXCLUDED.adaptador_versao, data_coleta = NOW()`,
+    [cols.ent, cols.ind, cols.ano, cols.valor, cols.qual, cols.fonte, cols.url, version],
+  );
+  return rowCount;
 }
 
 // Executa um adaptador de ponta a ponta e registra a execução em ingestion_run.
 export async function runAdapter(adapter, { pool, fetchImpl = fetch, now = new Date(), log = () => {} }) {
-  const { rows: [run] } = await pool.query(
-    'INSERT INTO ingestion_run (adaptador) VALUES ($1) RETURNING id', [adapter.slug]);
+  let run;
+  try {
+    ({ rows: [run] } = await pool.query(
+      'INSERT INTO ingestion_run (adaptador) VALUES ($1) RETURNING id', [adapter.slug]));
+  } catch (err) {
+    const msg = `banco indisponível (${err.code || err.message})`;
+    log(`${adapter.slug}: não iniciou — ${msg}`);
+    return { status: 'falhou', error: msg };
+  }
   const finish = (status, gravadas, detalhe) => pool.query(
     'UPDATE ingestion_run SET status=$2, gravadas=$3, detalhe=$4, terminado_em=NOW() WHERE id=$1',
     [run.id, status, gravadas, detalhe ? String(detalhe).slice(0, 2000) : null]);
@@ -132,6 +149,7 @@ export async function runAdapter(adapter, { pool, fetchImpl = fetch, now = new D
     const ctx = { fetchImpl, now, catalog, log };
     const raw = await adapter.fetch(ctx);
     const obs = adapter.normalize(raw, ctx);
+    log(`${adapter.slug}: ${obs.length} observação(ões) normalizada(s); validando e gravando…`);
     const v = validate(obs, catalog, { now });
     if (!v.ok) {
       await finish('rejeitado', 0, v.errors.slice(0, 20).join('; '));
