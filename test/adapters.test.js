@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { toAnnual, windows } from '../adapters/bcb-sgs.js';
-import { quarterlyToAnnual } from '../adapters/ibge-sidra.js';
+import { ibgePnad, ibgeIpca, ibgePib } from '../adapters/ibge-sidra.js';
 import { parseWb } from '../adapters/worldbank.js';
 import { validate, toNumber, describeError } from '../adapters/base.js';
 import { sgsMonthly, sidraPayload, wbPayload } from './helpers.js';
@@ -45,19 +45,43 @@ test('estoque mensal usa dezembro; sem dezembro usa o último mês e marca parci
   assert.deepEqual(y25, { ano: 2025, valor: 64, qualidade: 'parcial' });
 });
 
-test('SIDRA: média dos trimestres, ignora "..." e marca ano incompleto', () => {
-  const out = quarterlyToAnnual(sidraPayload({
-    202401: '8', 202402: '7', 202403: '6', 202404: '5',
-    202501: '4', 202502: '...',
-  }), NOW);
+const norm = (ad, raw) => ad.normalize(raw, { now: NOW }).map(({ ano, valor, qualidade }) => ({ ano, valor, qualidade }));
+
+test('PNAD: média dos trimestres, ignora "..." e marca ano incompleto', () => {
+  const out = norm(ibgePnad, sidraPayload({ 202401: '8', 202402: '7', 202403: '6', 202404: '5', 202501: '4', 202502: '...' }));
   assert.deepEqual(out, [
     { ano: 2024, valor: 6.5, qualidade: 'oficial' },
     { ano: 2025, valor: 4, qualidade: 'parcial' },
   ]);
 });
 
-test('SIDRA: falha clara se o cabeçalho não tiver a coluna de trimestre', () => {
-  assert.throws(() => quarterlyToAnnual([{ V: 'Valor' }, { V: '1' }], NOW), /colunas/);
+test('IPCA: compõe 12 variações mensais', () => {
+  const pts = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`2020${String(i + 1).padStart(2, '0')}`, '1']));
+  const [a] = norm(ibgeIpca, sidraPayload(pts, { periodo: 'Mês', variavel: 'IPCA - Variação mensal' }));
+  assert.deepEqual(a, { ano: 2020, valor: 12.6825, qualidade: 'oficial' });
+});
+
+test('PIB: usa a taxa acumulada do 4º trimestre; ano sem 4º trimestre fica parcial', () => {
+  const out = norm(ibgePib, sidraPayload({ 202401: '1', 202402: '2', 202403: '2.5', 202404: '3.4', 202601: '0.9' },
+    { variavel: 'Taxa acumulada ao longo do ano (em relação ao mesmo período do ano anterior)', categoria: 'PIB a preços de mercado' }));
+  assert.deepEqual(out, [
+    { ano: 2024, valor: 3.4, qualidade: 'oficial' },
+    { ano: 2026, valor: 0.9, qualidade: 'parcial' },
+  ]);
+});
+
+test('autoverificação: variável diferente da esperada recusa o lote', () => {
+  const raw = sidraPayload({ 202401: '1' }, { periodo: 'Mês', variavel: 'IPCA - Número-índice' });
+  assert.throws(() => norm(ibgeIpca, raw), /variável inesperada/);
+});
+
+test('autoverificação: PIB sem a categoria "PIB a preços de mercado" é recusado', () => {
+  const raw = sidraPayload({ 202404: '3' }, { variavel: 'Taxa acumulada ao longo do ano', categoria: 'Agropecuária' });
+  assert.throws(() => norm(ibgePib, raw), /categoria esperada/);
+});
+
+test('SIDRA: falha clara se o cabeçalho não tiver a coluna de período', () => {
+  assert.throws(() => norm(ibgePnad, [{ V: 'Valor' }, { V: '1' }]), /colunas/);
 });
 
 test('World Bank: mapeia ISO3 para slug, pula nulos e anos recentes ficam parciais', () => {

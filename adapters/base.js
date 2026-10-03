@@ -14,6 +14,7 @@ const BOUNDS = {
   '% PIB':  [0, 250],
   'pontos': [0, 1000],
   'km²':    [0, 100000],
+  'índice': [0, 1000],
 };
 
 export const USER_AGENT = 'Prumo/0.1 (Hack Tech Farm; +https://hacktechfarm.com.br)';

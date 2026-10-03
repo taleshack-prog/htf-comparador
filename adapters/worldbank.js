@@ -5,13 +5,14 @@
 import { fetchJson, round4 } from './base.js';
 import { FIRST_YEAR } from './bcb-sgs.js';
 
-export const COUNTRIES = ['BRA', 'SGP', 'SWE', 'LCN', 'MIC'];
+export const COUNTRIES = ['BRA', 'SGP', 'SWE', 'LCN', 'MIC', 'WLD'];
 
 export const SERIES = [
   { indicator: 'pib-anual-wb',          codigo: 'NY.GDP.MKTP.KD.ZG' },
   { indicator: 'inflacao-wb',           codigo: 'FP.CPI.TOTL.ZG' },
   { indicator: 'desemprego-oit-wb',     codigo: 'SL.UEM.TOTL.ZS' },
   { indicator: 'receita-tributaria-wb', codigo: 'GC.TAX.TOTL.GD.ZS' },
+  { indicator: 'termos-troca-wb',       codigo: 'TT.PRI.MRCH.XD.WD' },
 ];
 
 export const wbUrl = (codigo, toYear) =>

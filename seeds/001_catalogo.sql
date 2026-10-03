@@ -45,6 +45,7 @@ INSERT INTO dim_country (iso3, slug, nome_pt, nome_en, tipo) VALUES
   ('SGP', 'singapura', 'Singapura', 'Singapore', 'pais'),
   ('SWE', 'suecia',    'Suécia',    'Sweden',    'pais'),
   ('LCN', 'america-latina', 'América Latina e Caribe', 'Latin America & Caribbean', 'grupo_pares'),
+  ('WLD', 'mundo',          'Mundo',                   'World',                     'grupo_pares'),
   ('MIC', 'renda-media',    'Países de renda média',   'Middle income',             'grupo_pares'),
   (NULL,  'fhc',       'FHC (1995–2002)',       'Cardoso (1995–2002)',        'governo_brasil'),
   (NULL,  'lula',      'Lula I e II (2003–2010)','Lula I–II (2003–2010)',     'governo_brasil'),
@@ -80,14 +81,14 @@ INSERT INTO dim_indicator
 SELECT v.slug, v.nome, v.un, s.id, v.dir::direcao_enum, v.per, v.agg, v.ress, v.url, v.ad, v.cod
 FROM (VALUES
   ('pib-anual',  'PIB — variação real anual', '%', 'ibge', 'maior', 'anual', 'media',
-     'Contas Nacionais do IBGE. Distribuído pelo SGS do Banco Central.',
-     'https://www.ibge.gov.br/estatisticas/economicas/contas-nacionais.html', 'bcb-sgs', '7326'),
+     'Contas Nacionais Trimestrais do IBGE: taxa acumulada no ano até o 4º trimestre. Ano em curso fica parcial (acumulado até o último trimestre divulgado).',
+     'https://www.ibge.gov.br/estatisticas/economicas/contas-nacionais.html', 'ibge-pib', '5932/v6563/c11255/90707'),
   ('ipca-anual', 'IPCA — variação anual', '%', 'ibge', 'menor', 'mensal', 'media',
      'Inflação oficial (IBGE). Valor anual composto a partir das 12 variações mensais; ano incompleto é marcado como parcial.',
-     'https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html', 'bcb-sgs', '433'),
+     'https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html', 'ibge-ipca', '1737/v63'),
   ('desemprego', 'Taxa de desocupação', '%', 'ibge', 'menor', 'trimestral', 'media',
-     'PNAD Contínua desde 2012 (média dos trimestres do ano). Antes de 2012 a série oficial era a PME, com metodologia diferente: não são diretamente comparáveis.',
-     'https://www.ibge.gov.br/estatisticas/sociais/trabalho/9171-pesquisa-nacional-por-amostra-de-domicilios-continua-mensal.html', 'ibge-sidra', '4099/v4099'),
+     'PNAD Contínua desde 2012, calculada aqui como média dos quatro trimestres do ano; o IBGE divulga a média anual por outro cálculo, que pode diferir em alguns décimos. Antes de 2012 a série oficial era a PME, com metodologia diferente: não há dado comparável para FHC e Lula I–II.',
+     'https://www.ibge.gov.br/estatisticas/sociais/trabalho/9171-pesquisa-nacional-por-amostra-de-domicilios-continua-mensal.html', 'ibge-pnad', '4099/v4099'),
   ('divida-bruta', 'Dívida bruta do governo geral', '% PIB', 'bcb', 'menor', 'mensal', 'variacao',
      'DBGG, metodologia do Banco Central a partir de 2008 (posição de dezembro). Antes disso a série usa metodologia anterior.',
      'https://www.bcb.gov.br/estatisticas/estatisticasfiscais', 'bcb-sgs', '13762'),
@@ -116,7 +117,10 @@ FROM (VALUES
      'https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS', 'worldbank', 'SL.UEM.TOTL.ZS'),
   ('receita-tributaria-wb', 'Receita tributária do governo central (Banco Mundial)', '% PIB', 'worldbank', 'menor', 'anual', 'media',
      'Governo central apenas; menor que a carga tributária bruta do governo geral. Usar só para comparação entre países.',
-     'https://data.worldbank.org/indicator/GC.TAX.TOTL.GD.ZS', 'worldbank', 'GC.TAX.TOTL.GD.ZS')
+     'https://data.worldbank.org/indicator/GC.TAX.TOTL.GD.ZS', 'worldbank', 'GC.TAX.TOTL.GD.ZS'),
+  ('termos-troca-wb', 'Termos de troca (Banco Mundial)', 'índice', 'worldbank', 'maior', 'anual', 'variacao',
+     'Índice de termos de troca de mercadorias (2015 = 100): preço das exportações dividido pelo das importações. Mede o ciclo de commodities a favor ou contra o país; usado no motor de contexto.',
+     'https://data.worldbank.org/indicator/TT.PRI.MRCH.XD.WD', 'worldbank', 'TT.PRI.MRCH.XD.WD')
 ) AS v(slug, nome, un, src, dir, per, agg, ress, url, ad, cod)
 JOIN dim_source s ON s.slug = v.src
 ON CONFLICT (slug) DO UPDATE SET

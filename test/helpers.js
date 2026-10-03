@@ -5,12 +5,15 @@ export function sgsMonthly(year, values) {
   return values.map((v, i) => ({ data: `01/${String(i + 1).padStart(2, '0')}/${year}`, valor: String(v) }));
 }
 
-export function sidraPayload(quarters) {
-  // quarters: { '202301': '8.0', ... }
-  return [
-    { NC: 'Nível Territorial (Código)', D1C: 'Brasil (Código)', D2C: 'Trimestre (Código)', D2N: 'Trimestre', V: 'Valor' },
-    ...Object.entries(quarters).map(([code, v]) => ({ NC: '1', D1C: '1', D2C: code, D2N: code, V: v })),
-  ];
+// periodo: 'Trimestre' | 'Mês'; points: { 'AAAAPP': 'valor' }
+export function sidraPayload(points, { periodo = 'Trimestre', variavel = 'Taxa de desocupação', categoria } = {}) {
+  const header = { NC: 'Nível Territorial (Código)', V: 'Valor', D1C: 'Brasil (Código)',
+    D2C: `${periodo} (Código)`, D2N: periodo, D3C: 'Variável (Código)', D3N: 'Variável' };
+  if (categoria) Object.assign(header, { D4C: 'Setores (Código)', D4N: 'Setores' });
+  return [header, ...Object.entries(points).map(([code, v]) => ({
+    NC: '1', V: v, D1C: '1', D2C: code, D2N: code, D3C: '1', D3N: variavel,
+    ...(categoria ? { D4C: '1', D4N: categoria } : {}),
+  }))];
 }
 
 export function wbPayload(rows) {

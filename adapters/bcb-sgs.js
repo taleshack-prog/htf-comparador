@@ -10,9 +10,9 @@ export const FIRST_YEAR = 1995;
 //   anual          → a série já é anual
 //   mensal_composto→ compõe as 12 variações mensais: (Π(1+v/100) − 1) × 100
 //   mensal_dezembro→ posição de dezembro (estoque, ex.: dívida/PIB)
+// PIB e IPCA vêm direto do IBGE (adapters/ibge-sidra.js), que é quem os produz.
+// O SGS fica só com a dívida bruta, série que é do próprio Banco Central.
 export const SERIES = [
-  { indicator: 'pib-anual',    codigo: '7326',  tipo: 'anual' },
-  { indicator: 'ipca-anual',   codigo: '433',   tipo: 'mensal_composto' },
   { indicator: 'divida-bruta', codigo: '13762', tipo: 'mensal_dezembro' },
 ];
 
