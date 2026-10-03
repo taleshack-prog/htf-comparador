@@ -56,6 +56,7 @@ before(async () => {
   }
   await put('brasil', 'resultado-primario-fmi', 2002, 3.2);
   await put('brasil', 'resultado-primario-fmi', 2018, -1.6);
+  await put('brasil', 'controle-corrupcao-wb', 2018, 40);
 });
 after(async () => { if (pool) await pool.end(); });
 
@@ -102,8 +103,23 @@ test('FMI: tenta o próximo código quando o primeiro não traz o Brasil', async
     ['/GGXONLB_G01_GDP_PT/', { values: {} }],
     ['/pb/', { values: { pb: { BRA: { 2002: 3.2 } } } }],
     ['/GGXWDG_NGDP/', { values: { GGXWDG_NGDP: { BRA: { 2002: 60 } } } }],
+    ['/G_X_G01_GDP_PT/', { values: { G_X_G01_GDP_PT: { BRA: { 2002: 44.5 } } } }],
   ]);
   const raw = await imf.fetch({ fetchImpl: f, log: () => {} });
   const obs = imf.normalize(raw, { now: NOW });
-  assert.deepEqual(obs.map((o) => [o.indicator, o.ano, o.valor]), [['resultado-primario-fmi', 2002, 3.2], ['divida-bruta-fmi', 2002, 60]]);
+  assert.deepEqual(obs.map((o) => [o.indicator, o.ano, o.valor]), [['resultado-primario-fmi', 2002, 3.2], ['divida-bruta-fmi', 2002, 60], ['despesa-governo-fmi', 2002, 44.5]]);
+});
+
+test('despesa total é neutra (fora do ranking) e corrupção entra no modo oficial', opts, async () => {
+  const { rows } = await pool.query("SELECT slug, direcao_otima::text AS d FROM dim_indicator WHERE slug IN ('despesa-governo-fmi','controle-corrupcao-wb') ORDER BY slug");
+  assert.deepEqual(rows, [{ slug: 'controle-corrupcao-wb', d: 'maior' }, { slug: 'despesa-governo-fmi', d: 'neutra' }]);
+  const slugs = MODOS.oficial.componentes.map((c) => c.slug);
+  assert.ok(slugs.includes('controle-corrupcao-wb'));
+  assert.ok(!Object.values(MODOS).some((m) => m.componentes.some((c) => c.slug === 'despesa-governo-fmi')));
+});
+
+test('catálogo: WGI aparece no grupo internacional', opts, async () => {
+  const { getCatalog } = await import('../lib/compare.js');
+  const cat = await getCatalog(pool);
+  assert.equal(cat.indicadores.find((i) => i.slug === 'controle-corrupcao-wb').grupo, 'internacional');
 });

@@ -28,8 +28,8 @@
     <ul>
       <li><strong>IBGE</strong> (oficial): PIB, inflação (IPCA) e desemprego (PNAD Contínua), lidos direto da API SIDRA.</li>
       <li><strong>Banco Central</strong> (oficial): dívida bruta do governo geral.</li>
-      <li><strong>Banco Mundial</strong> (organismo internacional): séries harmonizadas para comparar o Brasil com outros países e grupos de países pela mesma metodologia.</li>
-      <li><strong>FMI</strong> (organismo internacional): resultado primário e dívida bruta do governo geral (World Economic Outlook). O ano corrente é estimativa do FMI e aparece como projeção.</li>
+      <li><strong>Banco Mundial</strong> (organismo internacional): séries harmonizadas para comparar o Brasil com outros países e grupos de países pela mesma metodologia. Também o índice de Controle da Corrupção (Worldwide Governance Indicators).</li>
+      <li><strong>FMI</strong> (organismo internacional): resultado primário, dívida bruta e despesa total do governo geral (World Economic Outlook e Fiscal Monitor). O ano corrente é estimativa do FMI e aparece como projeção.</li>
     </ul>
     <p>Os dados são coletados automaticamente todos os dias. Antes de gravar, o sistema confere se a série recebida é a esperada e se os valores são plausíveis. Se algo não bater, o lote inteiro é recusado e o Prumo continua mostrando a última versão verificada. Quando a fonte revisa um número, a versão anterior fica guardada.</p>
 
@@ -61,8 +61,11 @@
     <ul>
       <li><strong>Nota de cada indicador:</strong> entre os seis governos, o melhor resultado recebe 100 e o pior recebe 0. Os demais ficam proporcionalmente entre os dois.</li>
       <li><strong>Nota geral:</strong> média ponderada das notas dos indicadores com dado: Σ(peso × nota) ÷ Σ(pesos dos indicadores disponíveis). Os pesos começam iguais e podem ser mudados na tela.</li>
-      <li><strong>Dados oficiais:</strong> crescimento do PIB, inflação, desemprego, resultado primário e variação da dívida, em números brutos.</li>
+      <li><strong>Dados oficiais:</strong> crescimento do PIB, inflação, desemprego, resultado primário, variação da dívida e controle da corrupção, em números brutos.</li>
       <li><strong>Em relação à América Latina:</strong> crescimento, inflação e desemprego do Brasil menos a média da América Latina e Caribe nos mesmos anos (Banco Mundial). É a forma de levar o contexto para a nota sem arbitrar nada: uma crise que atingiu toda a região, como a pandemia, ou um ciclo de commodities que favoreceu todos os exportadores aparece também nos vizinhos e se anula na diferença.</li>
+      <li><strong>Controle da corrupção</strong> entra no modo de dados oficiais. É a nota do Brasil de 0 (pior) a 100 (melhor) nos Worldwide Governance Indicators do Banco Mundial, na revisão metodológica de 2025. Atenção a dois limites: o índice mede a <em>percepção</em> de especialistas, empresas e cidadãos, não casos comprovados; e esquemas ocultos só pesam na nota depois de descobertos, então um período pode ser avaliado melhor ou pior do que mereceria. O dado sai com cerca de um ano de atraso.</li>
+      <li><strong>Despesa total do governo</strong> (FMI, % do PIB) aparece para consulta e <strong>não entra no ranking</strong>: não há consenso sobre o tamanho ideal do gasto público, e qualquer direção escolhida tomaria partido. O uso do dinheiro público entra no ranking pelo resultado primário (quanto se gasta além do que se arrecada, sem juros) e pela variação da dívida.</li>
+      <li><strong>Posição em cada indicador:</strong> no gráfico "indicador por indicador", cada barra mostra a posição do governo (1º = melhor) entre os governos escolhidos. As barras ficam em ordem cronológica por padrão; a posição não depende dessa ordem.</li>
       <li><strong>Cobertura:</strong> quando falta um indicador para um governo (o desemprego da PNAD só existe desde 2012, por exemplo), a nota usa só os disponíveis e a tela informa a porcentagem dos pesos que entrou na conta.</li>
     </ul>
 

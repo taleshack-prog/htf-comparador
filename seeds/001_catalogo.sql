@@ -126,7 +126,13 @@ FROM (VALUES
      'https://www.imf.org/external/datamapper/GGXONLB_G01_GDP_PT@FM/BRA', 'fmi', 'GGXONLB_G01_GDP_PT'),
   ('divida-bruta-fmi', 'Dívida bruta do governo geral (FMI)', '% PIB', 'fmi', 'menor', 'anual', 'variacao',
      'Dívida bruta do governo geral pela metodologia do FMI (World Economic Outlook), que difere da metodologia do Banco Central. A variação compara o último ano do governo com o ano anterior à posse.',
-     'https://www.imf.org/external/datamapper/GGXWDG_NGDP@WEO/BRA', 'fmi', 'GGXWDG_NGDP')
+     'https://www.imf.org/external/datamapper/GGXWDG_NGDP@WEO/BRA', 'fmi', 'GGXWDG_NGDP'),
+  ('despesa-governo-fmi', 'Despesa total do governo geral (FMI)', '% PIB', 'fmi', 'neutra', 'anual', 'media',
+     'Gasto total do governo geral (União, estados e municípios), incluindo juros, em % do PIB (FMI). Não existe consenso sobre o tamanho ideal do gasto público: o indicador aparece para consulta e não entra no ranking.',
+     'https://www.imf.org/external/datamapper/G_X_G01_GDP_PT/BRA', 'fmi', 'G_X_G01_GDP_PT'),
+  ('controle-corrupcao-wb', 'Controle da corrupção (Banco Mundial)', 'pontos', 'worldbank', 'maior', 'anual', 'media',
+     'Worldwide Governance Indicators, revisão de 2025: nota de 0 (pior) a 100 (melhor). Mede a PERCEPÇÃO de especialistas, empresas e cidadãos, não casos comprovados; esquemas ocultos só afetam o índice depois de descobertos, então há defasagem entre o fato e a nota. Sai com cerca de um ano de atraso; antes de 2002 a avaliação era bienal.',
+     'https://data.worldbank.org/indicator/GOV_WGI_CC_SC', 'worldbank-wgi', 'GOV_WGI_CC.SC')
 ) AS v(slug, nome, un, src, dir, per, agg, ress, url, ad, cod)
 JOIN dim_source s ON s.slug = v.src
 ON CONFLICT (slug) DO UPDATE SET

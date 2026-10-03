@@ -282,8 +282,21 @@ function renderBars() {
   const variacao = ind.agregacao === 'variacao';
   const un = variacao ? unidadeVariacao(ind.unidade) : ind.unidade;
   $('#t-barras').textContent = `${ind.nome}: ${variacao ? 'variação durante cada governo' : 'média anual por governo'}`;
-  $('#direcao').textContent = `Para este indicador, valores ${ind.direcao === 'menor' ? 'menores' : 'maiores'} são desejáveis.` +
-    (variacao ? ' A variação compara o último ano do governo com o ano anterior à posse.' : '');
+  const neutra = ind.direcao === 'neutra';
+  $('#direcao').textContent = (neutra
+    ? 'Não há consenso sobre qual valor é desejável para este indicador: ele aparece para consulta, sem posição, e não entra no ranking.'
+    : `Para este indicador, valores ${ind.direcao === 'menor' ? 'menores' : 'maiores'} são desejáveis. O número ao lado de cada barra é a posição entre os governos mostrados (1º = melhor).`) +
+    (variacao ? ' A variação compara o último ano do governo com o ano anterior à posse.' : '') +
+    (state.ordem === 'periodo' ? ' Barras em ordem cronológica.' : '');
+  // posição de cada governo entre os mostrados, segundo a direção desejável
+  const posicao = new Map();
+  if (!neutra) {
+    const comValor = d.governos.filter((r) => r.valor !== null)
+      .sort((a, b) => (ind.direcao === 'menor' ? a.valor - b.valor : b.valor - a.valor));
+    let ult = null, pos = 0;
+    comValor.forEach((r, i) => { if (r.valor !== ult) { pos = i + 1; ult = r.valor; } posicao.set(r.slug, pos); });
+    posicao.total = comValor.length;
+  }
 
   const refNome = d.referencia ? state.catalog.referencias.find((r) => r.slug === d.referencia)?.nome : null;
   $('#legenda-barras').innerHTML =
@@ -293,7 +306,7 @@ function renderBars() {
 
   let rows = d.governos.slice();
   if (state.ordem === 'valor') {
-    rows.sort((a, b) => (a.valor === null) - (b.valor === null) || (ind.direcao === 'menor' ? a.valor - b.valor : b.valor - a.valor));
+    rows.sort((a, b) => (a.valor === null) - (b.valor === null) || (ind.direcao === 'maior' ? b.valor - a.valor : a.valor - b.valor));
   }
   const box = $('#grafico-barras');
   box.innerHTML = '';
@@ -355,6 +368,7 @@ function renderBars() {
       const vt = svg('text', { x: lxv, y: barY + 15, 'font-size': 14, 'font-weight': 600, 'text-anchor': neg ? 'end' : 'start' }, g);
       vt.textContent = fmtValor(r.valor, un, { sinal: variacao });
       const extras = [];
+      if (posicao.has(r.slug)) extras.push(`${posicao.get(r.slug)}º de ${posicao.total}`);
       if (r.qualidade === 'parcial') extras.push('parcial');
       if (r.cobertura[0] < r.cobertura[1]) extras.push(`${r.cobertura[0]} de ${r.cobertura[1]} anos`);
       if (extras.length) {
@@ -368,6 +382,7 @@ function renderBars() {
     }
     const tipHtml = `<strong>${nome}</strong> (${r.ano_inicio}–${r.ano_fim})<br>Brasil: ${fmtValor(r.valor, un, { sinal: variacao })}` +
       (r.referencia ? `<br>${refNome}: ${fmtValor(r.referencia.valor, un, { sinal: variacao })}<br>Diferença: ${fmtValor(r.diferenca, unidadeVariacao(ind.unidade), { sinal: true })}` : '') +
+      (posicao.has(r.slug) ? `<br>Posição: ${posicao.get(r.slug)}º de ${posicao.total}` : '') +
       `<br>Anos com dado: ${r.cobertura[0]} de ${r.cobertura[1]}${r.qualidade === 'parcial' ? ' · inclui dado parcial' : ''}`;
     g.addEventListener('mousemove', (e) => showTip(tipHtml, e.clientX, e.clientY));
     g.addEventListener('mouseleave', hideTip);

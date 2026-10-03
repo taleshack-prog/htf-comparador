@@ -15,9 +15,9 @@ export const SERIES = [
   { indicator: 'termos-troca-wb',       codigo: 'TT.PRI.MRCH.XD.WD' },
 ];
 
-export const wbUrl = (codigo, toYear) =>
-  `https://api.worldbank.org/v2/country/${COUNTRIES.join(';')}/indicator/${codigo}` +
-  `?format=json&date=${FIRST_YEAR}:${toYear}&per_page=2000`;
+export const wbUrl = (codigo, toYear, { paises = COUNTRIES, fonte } = {}) =>
+  `https://api.worldbank.org/v2/country/${paises.join(';')}/indicator/${codigo}` +
+  `?format=json&date=${FIRST_YEAR}:${toYear}&per_page=2000${fonte ? `&source=${fonte}` : ''}`;
 export const wbPublicUrl = (codigo) => `https://data.worldbank.org/indicator/${codigo}`;
 
 export function parseWb(payload, byIso3, now = new Date()) {
@@ -50,7 +50,34 @@ export default {
   normalize(raw, { catalog, now }) {
     return SERIES.flatMap((s) =>
       parseWb(raw[s.codigo], catalog.byIso3, now).map((o) => ({
-        ...o, indicator: s.indicator, url: wbPublicUrl(s.codigo),
+        ...o, indicator: s.indicator, url: wgiPublicUrl(s.codigo),
+      })));
+  },
+};
+
+// Worldwide Governance Indicators (Banco Mundial, base 3): controle da corrupção.
+// Adaptador separado: se a base de governança falhar, as séries econômicas seguem.
+// Desde a revisão de 2025 o WGI publica uma nota de 0 a 100 (GOV_WGI_CC.SC); o antigo
+// percentil CC.PER.RNK foi arquivado e a API responde "indicator was not found".
+export const WGI_SERIES = [
+  { indicator: 'controle-corrupcao-wb', codigo: 'GOV_WGI_CC.SC' },
+];
+// A página pública usa sublinhado no lugar do ponto: GOV_WGI_CC_SC.
+export const wgiPublicUrl = (codigo) => `https://data.worldbank.org/indicator/${codigo.replace(/\./g, '_')}`;
+export const worldbankWgi = {
+  slug: 'worldbank-wgi',
+  version: 'worldbank-wgi@1',
+  async fetch({ fetchImpl, now, log }) {
+    const out = {};
+    for (const s of WGI_SERIES) {
+      out[s.codigo] = await fetchJson(wbUrl(s.codigo, now.getUTCFullYear(), { paises: ['BRA', 'SGP', 'SWE'], fonte: 3 }), { fetchImpl, log, timeoutMs: 60000 });
+    }
+    return out;
+  },
+  normalize(raw, { catalog, now }) {
+    return WGI_SERIES.flatMap((s) =>
+      parseWb(raw[s.codigo], catalog.byIso3, now).map((o) => ({
+        ...o, indicator: s.indicator, url: wgiPublicUrl(s.codigo),
       })));
   },
 };

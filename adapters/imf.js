@@ -11,6 +11,7 @@ import { FIRST_YEAR } from './bcb-sgs.js';
 export const SERIES = [
   { indicator: 'resultado-primario-fmi', codigos: ['GGXONLB_G01_GDP_PT', 'pb'] },
   { indicator: 'divida-bruta-fmi',       codigos: ['GGXWDG_NGDP', 'G_XWDG_G01_GDP_PT'] },
+  { indicator: 'despesa-governo-fmi',    codigos: ['G_X_G01_GDP_PT', 'exp'] },
 ];
 export const imfUrl = (codigo) => `https://www.imf.org/external/datamapper/api/v1/${codigo}/BRA`;
 export const imfPublicUrl = (codigo) => `https://www.imf.org/external/datamapper/${codigo}/BRA`;

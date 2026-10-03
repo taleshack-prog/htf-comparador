@@ -136,3 +136,19 @@ test('erro de rede mostra a causa real e o servidor', () => {
   const abort = Object.assign(new Error('aborted'), { name: 'AbortError' });
   assert.equal(describeError(abort, 'https://api.worldbank.org/v2'), 'tempo esgotado em api.worldbank.org');
 });
+
+test('WGI: pede a base 3 com o código atual e grava o link público com sublinhado', async () => {
+  const { worldbankWgi, wbUrl } = await import('../adapters/worldbank.js');
+  assert.match(wbUrl('GOV_WGI_CC.SC', 2026, { paises: ['BRA'], fonte: 3 }), /country\/BRA\/indicator\/GOV_WGI_CC\.SC\?.*&source=3$/);
+  const { fakeFetch } = await import('./helpers.js');
+  const impl = fakeFetch([['GOV_WGI_CC.SC', wbPayload([
+    { countryiso3code: 'BRA', date: '2023', value: 38.4 },
+    { countryiso3code: 'SWE', date: '2023', value: 91.2 },
+  ])]]);
+  const raw = await worldbankWgi.fetch({ fetchImpl: impl, now: NOW, log: () => {} });
+  assert.match(impl.calls[0], /BRA;SGP;SWE/);
+  const out = worldbankWgi.normalize(raw, { catalog: { byIso3: new Map([['BRA', 'brasil'], ['SWE', 'suecia']]) }, now: NOW });
+  assert.deepEqual(out.map((o) => [o.entity, o.indicator, o.ano, o.valor]), [
+    ['brasil', 'controle-corrupcao-wb', 2023, 38.4], ['suecia', 'controle-corrupcao-wb', 2023, 91.2]]);
+  assert.equal(out[0].url, 'https://data.worldbank.org/indicator/GOV_WGI_CC_SC');
+});
