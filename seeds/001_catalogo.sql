@@ -122,8 +122,8 @@ FROM (VALUES
      'Índice de termos de troca de mercadorias (2015 = 100): preço das exportações dividido pelo das importações. Mede o ciclo de commodities a favor ou contra o país; usado no motor de contexto.',
      'https://data.worldbank.org/indicator/TT.PRI.MRCH.XD.WD', 'worldbank', 'TT.PRI.MRCH.XD.WD'),
   ('resultado-primario-fmi', 'Resultado primário do governo geral (FMI)', '% PIB', 'fmi', 'maior', 'anual', 'media',
-     'Receitas menos despesas, sem contar juros, do governo geral (FMI, World Economic Outlook). Positivo = superávit. O ano corrente é estimativa do FMI e aparece como projeção.',
-     'https://www.imf.org/external/datamapper/GGXONLB_NGDP@WEO/BRA', 'fmi', 'GGXONLB_NGDP'),
+     'Receitas menos despesas, sem contar juros, do governo geral (FMI, Fiscal Monitor). Positivo = superávit. O ano corrente é estimativa do FMI e aparece como projeção.',
+     'https://www.imf.org/external/datamapper/GGXONLB_G01_GDP_PT@FM/BRA', 'fmi', 'GGXONLB_G01_GDP_PT'),
   ('divida-bruta-fmi', 'Dívida bruta do governo geral (FMI)', '% PIB', 'fmi', 'menor', 'anual', 'variacao',
      'Dívida bruta do governo geral pela metodologia do FMI (World Economic Outlook), que difere da metodologia do Banco Central. A variação compara o último ano do governo com o ano anterior à posse.',
      'https://www.imf.org/external/datamapper/GGXWDG_NGDP@WEO/BRA', 'fmi', 'GGXWDG_NGDP')

@@ -94,3 +94,16 @@ test('contexto: recessão mundial ano a ano e herança fiscal', opts, async () =
   assert.equal(fat('lula', 'heranca_fiscal').efeito, 'favoravel');       // superávit de 2002
   assert.equal(fat('bolsonaro', 'heranca_fiscal').efeito, 'desfavoravel'); // déficit de 2018
 });
+
+test('FMI: tenta o próximo código quando o primeiro não traz o Brasil', async () => {
+  const { default: imf } = await import('../adapters/imf.js');
+  const { fakeFetch } = await import('./helpers.js');
+  const f = fakeFetch([
+    ['/GGXONLB_G01_GDP_PT/', { values: {} }],
+    ['/pb/', { values: { pb: { BRA: { 2002: 3.2 } } } }],
+    ['/GGXWDG_NGDP/', { values: { GGXWDG_NGDP: { BRA: { 2002: 60 } } } }],
+  ]);
+  const raw = await imf.fetch({ fetchImpl: f, log: () => {} });
+  const obs = imf.normalize(raw, { now: NOW });
+  assert.deepEqual(obs.map((o) => [o.indicator, o.ano, o.valor]), [['resultado-primario-fmi', 2002, 3.2], ['divida-bruta-fmi', 2002, 60]]);
+});

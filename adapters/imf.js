@@ -6,12 +6,14 @@
 import { fetchJson, round4 } from './base.js';
 import { FIRST_YEAR } from './bcb-sgs.js';
 
+// Cada série lista códigos em ordem de preferência: o primeiro que trouxer o Brasil vale.
+// GGXONLB_G01_GDP_PT = resultado primário (Fiscal Monitor); "pb" = mesmo conceito em outra base.
 export const SERIES = [
-  { indicator: 'resultado-primario-fmi', codigo: 'GGXONLB_NGDP' },
-  { indicator: 'divida-bruta-fmi',       codigo: 'GGXWDG_NGDP' },
+  { indicator: 'resultado-primario-fmi', codigos: ['GGXONLB_G01_GDP_PT', 'pb'] },
+  { indicator: 'divida-bruta-fmi',       codigos: ['GGXWDG_NGDP', 'G_XWDG_G01_GDP_PT'] },
 ];
 export const imfUrl = (codigo) => `https://www.imf.org/external/datamapper/api/v1/${codigo}/BRA`;
-export const imfPublicUrl = (codigo) => `https://www.imf.org/external/datamapper/${codigo}@WEO/BRA`;
+export const imfPublicUrl = (codigo) => `https://www.imf.org/external/datamapper/${codigo}/BRA`;
 
 export function parseImf(payload, codigo, now = new Date()) {
   const serie = payload?.values?.[codigo]?.BRA;
@@ -31,13 +33,22 @@ export default {
   version: 'fmi@1',
   async fetch({ fetchImpl, log }) {
     const out = {};
-    for (const s of SERIES) out[s.codigo] = await fetchJson(imfUrl(s.codigo), { fetchImpl, log, timeoutMs: 30000 });
+    for (const s of SERIES) {
+      for (const codigo of s.codigos) {
+        const payload = await fetchJson(imfUrl(codigo), { fetchImpl, log, timeoutMs: 30000 });
+        if (payload?.values?.[codigo]?.BRA) { out[s.indicator] = { codigo, payload }; break; }
+        log(`  FMI ${codigo}: sem série do Brasil, tentando o próximo código`);
+      }
+      if (!out[s.indicator]) throw new Error(`FMI: nenhum código trouxe ${s.indicator} (${s.codigos.join(', ')})`);
+    }
     return out;
   },
   normalize(raw, { now }) {
-    return SERIES.flatMap((s) =>
-      parseImf(raw[s.codigo], s.codigo, now).map((o) => ({
-        entity: 'brasil', indicator: s.indicator, ...o, url: imfPublicUrl(s.codigo),
-      })));
+    return SERIES.flatMap((s) => {
+      const { codigo, payload } = raw[s.indicator];
+      return parseImf(payload, codigo, now).map((o) => ({
+        entity: 'brasil', indicator: s.indicator, ...o, url: imfPublicUrl(codigo),
+      }));
+    });
   },
 };
