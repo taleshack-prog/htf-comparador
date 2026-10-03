@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Metodologia — Prumo</title>
+  <meta name="description" content="Como o Prumo coleta, calcula e contextualiza os dados de cada governo.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;800&display=swap">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="topo">
+    <a class="marca" href="/" aria-label="Prumo, voltar à comparação">
+      <svg class="marca-glifo" viewBox="0 0 20 40" aria-hidden="true"><line x1="10" y1="0" x2="10" y2="26" /><path d="M10 26 L15 32 L10 40 L5 32 Z" /></svg>
+      <span class="marca-nome">Prumo</span>
+    </a>
+    <p class="marca-frase">Governos comparados com dados oficiais</p>
+    <nav class="topo-nav"><a href="/">Comparar</a></nav>
+  </header>
+  <main class="texto">
+    <h1>Metodologia</h1>
+    <p>O Prumo compara períodos de governo usando só dados publicados por órgãos oficiais e organismos internacionais. Esta página explica de onde vem cada número e como ele é calculado, para que qualquer pessoa possa refazer a conta.</p>
+
+    <h2>De onde vêm os dados</h2>
+    <ul>
+      <li><strong>IBGE</strong> (oficial): PIB, inflação (IPCA) e desemprego (PNAD Contínua), lidos direto da API SIDRA.</li>
+      <li><strong>Banco Central</strong> (oficial): dívida bruta do governo geral.</li>
+      <li><strong>Banco Mundial</strong> (organismo internacional): séries harmonizadas para comparar o Brasil com outros países e grupos de países pela mesma metodologia.</li>
+    </ul>
+    <p>Os dados são coletados automaticamente todos os dias. Antes de gravar, o sistema confere se a série recebida é a esperada e se os valores são plausíveis. Se algo não bater, o lote inteiro é recusado e o Prumo continua mostrando a última versão verificada. Quando a fonte revisa um número, a versão anterior fica guardada.</p>
+
+    <h2>Como os números de cada governo são calculados</h2>
+    <ul>
+      <li><strong>Janelas em anos civis.</strong> Cada governo ocupa os anos de 1º de janeiro a 31 de dezembro do seu mandato. Mandatos interrompidos (Dilma, 2016) e iniciados no meio do ano (Temer) seguem essa convenção, indicada junto do governo.</li>
+      <li><strong>Média anual</strong> para taxas como PIB, inflação e desemprego: média simples dos anos com dado.</li>
+      <li><strong>Variação</strong> para estoques como a dívida: último ano do governo menos o ano anterior à posse.</li>
+      <li><strong>Cobertura.</strong> Anos sem dado ficam fora da conta, nunca são estimados. O gráfico mostra quantos anos entraram.</li>
+      <li><strong>Dados parciais.</strong> O ano em curso e números ainda não consolidados aparecem marcados como parciais.</li>
+      <li><strong>Comparação internacional.</strong> A diferença entre o Brasil e outro país usa só os anos que existem nas duas séries.</li>
+    </ul>
+
+    <h2>Contexto de cada período</h2>
+    <p>Números brutos não contam toda a história: um governo pode pegar uma crise mundial, outro um ciclo favorável de exportações. O Prumo mede essas circunstâncias com os mesmos critérios para todos os governos. O contexto não soma nem tira pontos: ele aparece ao lado dos números para que você tire suas conclusões.</p>
+    <ul>
+      <li><strong>Economia mundial:</strong> crescimento médio do PIB mundial no período, comparado com a média de 1995 até o último ano consolidado. A favor se ficou pelo menos 0,5 ponto percentual acima; contra se ficou 0,5 abaixo.</li>
+      <li><strong>Preços de exportação (termos de troca):</strong> variação do índice de termos de troca do Brasil entre o ano anterior à posse e o último ano do governo. A favor acima de +10%; contra abaixo de −10%.</li>
+      <li><strong>Ponto de partida:</strong> PIB, inflação e desemprego no ano anterior à posse. Começar em recessão ou com inflação acima de 10% conta como contra.</li>
+      <li><strong>Efeito base:</strong> quando o ano anterior foi de queda do PIB, parte do crescimento seguinte é recuperação. Isso é sinalizado para que as taxas sejam lidas junto com os níveis.</li>
+      <li><strong>Brasil em relação à América Latina:</strong> diferença média de crescimento entre o Brasil e a média da região nos mesmos anos. Choques que atingem todos os países se anulam nessa diferença.</li>
+      <li><strong>Duração:</strong> janelas de até dois anos têm poucos pontos de dados e são sinalizadas.</li>
+    </ul>
+
+    <h2>O que o Prumo não faz</h2>
+    <ul>
+      <li>Não atribui notas, bônus ou penalidades a governos.</li>
+      <li>Não estima dados que a fonte não publicou.</li>
+      <li>Não mostra opinião como se fosse dado.</li>
+    </ul>
+    <p><a href="/">Voltar à comparação</a></p>
+  </main>
+  <footer class="rodape"><p>Prumo é um app da <a href="https://hacktechfarm.com.br">Hack Tech Farm</a>.</p></footer>
+</body>
+</html>

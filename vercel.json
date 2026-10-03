@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "node tools/build.mjs",
+  "buildCommand": "node tools/migrate.mjs && node tools/build.mjs",
   "outputDirectory": "public",
   "cleanUrls": true,
   "trailingSlash": false,

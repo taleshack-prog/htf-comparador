@@ -7,7 +7,12 @@ Mesma filosofia do site: HTML/CSS/JS sem framework, gerado por script, e funçõ
 Dependência única: `pg` (driver do Postgres). Stripe, Anthropic, Brevo e as fontes de dados
 são chamados por `fetch`, sem SDK.
 
-## Estado: Sprint 0 concluído + início do Sprint 1
+## Estado
+
+Sprint 0 e Sprint 1 concluídos; API de comparação, motor de contexto v1 e tela de comparação no ar.
+Cada deploy na Vercel aplica as migrações e o catálogo antes do build (`vercel.json → buildCommand`).
+
+## Histórico do Sprint 0
 
 | Pronto | O quê |
 |---|---|

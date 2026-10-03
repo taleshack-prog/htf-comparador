@@ -6,15 +6,104 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Prumo — governos comparados com dados oficiais</title>
   <meta name="description" content="Comparação apartidária e conferível de governos do Brasil e do mundo, com dados oficiais e fontes citadas.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;800&display=swap">
   <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-  <main class="wrap">
-    <p class="kicker">Hack Tech Farm</p>
-    <h1>Prumo</h1>
-    <p class="tagline">Governos comparados com dados oficiais</p>
-    <p class="lead">Em construção. Dados oficiais, contexto medido para cada governo e fontes conferíveis em cada número.</p>
-    <p><a href="https://hacktechfarm.com.br">Voltar para hacktechfarm.com.br</a></p>
+  <a class="skip" href="#conteudo">Pular para a comparação</a>
+
+  <header class="topo">
+    <a class="marca" href="/" aria-label="Prumo, página inicial">
+      <svg class="marca-glifo" viewBox="0 0 20 40" aria-hidden="true">
+        <line x1="10" y1="0" x2="10" y2="26" />
+        <path d="M10 26 L15 32 L10 40 L5 32 Z" />
+      </svg>
+      <span class="marca-nome">Prumo</span>
+    </a>
+    <p class="marca-frase">Governos comparados com dados oficiais</p>
+    <nav class="topo-nav">
+      <a href="/metodologia">Metodologia</a>
+    </nav>
+  </header>
+
+  <main id="conteudo">
+    <section class="controles" aria-label="Escolha o que comparar">
+      <p class="intro">Escolha um indicador e os governos. Cada número vem de uma fonte oficial, com link para conferir.</p>
+
+      <div class="linha-controles">
+        <label class="campo">
+          <span>Indicador</span>
+          <select id="sel-indicador"></select>
+        </label>
+        <label class="campo">
+          <span>Comparar com</span>
+          <select id="sel-referencia"></select>
+        </label>
+        <div class="acoes">
+          <button type="button" id="btn-link" class="botao">Copiar link</button>
+          <button type="button" id="btn-pdf" class="botao botao-forte">Baixar PDF</button>
+        </div>
+      </div>
+      <p id="dica-referencia" class="dica" hidden></p>
+
+      <fieldset class="governos">
+        <legend>Governos</legend>
+        <div id="chips-governos" class="chips"></div>
+      </fieldset>
+    </section>
+
+    <p id="aviso" class="aviso" role="status" hidden></p>
+
+    <section class="bloco" aria-labelledby="t-barras">
+      <div class="bloco-cabeca">
+        <h2 id="t-barras">Carregando…</h2>
+        <div class="ordem" role="group" aria-label="Ordem">
+          <button type="button" data-ordem="periodo" aria-pressed="true">Por período</button>
+          <button type="button" data-ordem="valor" aria-pressed="false">Por valor</button>
+        </div>
+      </div>
+      <p id="direcao" class="nota"></p>
+      <div id="legenda-barras" class="legenda"></div>
+      <div id="grafico-barras" class="grafico"></div>
+      <details class="tabela">
+        <summary>Ver os números em tabela</summary>
+        <div id="tabela-numeros"></div>
+      </details>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-linha">
+      <h2 id="t-linha">Ano a ano</h2>
+      <div id="legenda-linha" class="legenda"></div>
+      <div id="grafico-linha" class="grafico"></div>
+    </section>
+
+    <section class="bloco" aria-labelledby="t-contexto">
+      <h2 id="t-contexto">Contexto de cada período</h2>
+      <p class="nota">O contexto é medido com os mesmos critérios para todos os governos. Ele descreve as circunstâncias de cada período e não soma nem tira pontos de ninguém.</p>
+      <ul class="legenda-contexto">
+        <li><span class="sinal favoravel" aria-hidden="true">▲</span>A favor do período</li>
+        <li><span class="sinal desfavoravel" aria-hidden="true">▼</span>Contra o período</li>
+        <li><span class="sinal medida" aria-hidden="true">◆</span>Medida comparativa</li>
+        <li><span class="sinal neutro" aria-hidden="true">○</span>Informação</li>
+      </ul>
+      <div id="contexto" class="contexto"></div>
+    </section>
+
+    <section class="bloco fontes" aria-labelledby="t-fontes">
+      <h2 id="t-fontes">Fonte e método</h2>
+      <div id="fontes"></div>
+    </section>
+
+    <div id="meta-impressao" class="meta-impressao"></div>
   </main>
+
+  <footer class="rodape">
+    <p>Prumo é um app da <a href="https://hacktechfarm.com.br">Hack Tech Farm</a>. <span id="atualizado"></span></p>
+  </footer>
+
+  <div id="dica-flutuante" class="tooltip" role="tooltip" hidden></div>
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>
