@@ -8,7 +8,7 @@ const NIVEL = {
   pesquisa_independente: 'Pesquisa independente', imprensa: 'Imprensa', checagem: 'Checagem',
 };
 
-const state = { catalog: null, data: null, ind: null, gov: new Set(), ref: '', ordem: 'periodo' };
+const state = { catalog: null, data: null, ind: null, gov: new Set(), ref: '', ordem: 'periodo', rmodo: 'oficial', rpesos: {}, rdata: null };
 
 // ---------- formatação ----------
 function fmtValor(v, unidade, { sinal = false } = {}) {
@@ -18,6 +18,7 @@ function fmtValor(v, unidade, { sinal = false } = {}) {
   if (unidade === '%') return `${s}%`;
   if (unidade === '% PIB') return `${s}% do PIB`;
   if (unidade === 'p.p.') return `${s} p.p.`;
+  if (unidade === 'p.p. do PIB') return `${s} p.p. do PIB`;
   if (unidade === 'km²') return `${s} km²`;
   if (unidade === 'pontos') return `${s} pontos`;
   return s;
@@ -34,7 +35,10 @@ const svg = (tag, attrs = {}, parent) => {
 // ---------- URL ----------
 function readUrl() {
   const p = new URLSearchParams(location.search);
-  return { ind: p.get('ind'), gov: p.get('gov'), ref: p.get('ref') || '', ordem: p.get('ordem') || 'periodo' };
+  const rpesos = {};
+  for (const par of (p.get('pesos') || '').split(',').filter(Boolean)) { const [k, v] = par.split(':'); if (k && v !== undefined) rpesos[k] = Number(v); }
+  return { ind: p.get('ind'), gov: p.get('gov'), ref: p.get('ref') || '', ordem: p.get('ordem') || 'periodo',
+    rmodo: p.get('ranking') === 'relativo' ? 'relativo' : 'oficial', rpesos };
 }
 function writeUrl() {
   const p = new URLSearchParams();
@@ -43,6 +47,9 @@ function writeUrl() {
   if (state.gov.size !== todos.length) p.set('gov', [...state.gov].join(','));
   if (state.ref) p.set('ref', state.ref);
   if (state.ordem !== 'periodo') p.set('ordem', state.ordem);
+  if (state.rmodo !== 'oficial') p.set('ranking', state.rmodo);
+  const pesos = Object.entries(state.rpesos).filter(([, v]) => v !== 1).map(([k, v]) => `${k}:${v}`);
+  if (pesos.length) p.set('pesos', pesos.join(','));
   history.replaceState(null, '', `${location.pathname}?${p}`);
 }
 
@@ -100,11 +107,21 @@ function buildControls() {
     chips.appendChild(b);
   }
 
-  document.querySelectorAll('.ordem button').forEach((b) => {
+  document.querySelectorAll('[data-modo]').forEach((b) => {
+    b.setAttribute('aria-pressed', b.dataset.modo === state.rmodo);
+    b.onclick = () => {
+      state.rmodo = b.dataset.modo;
+      state.rpesos = {};
+      document.querySelectorAll('[data-modo]').forEach((x) => x.setAttribute('aria-pressed', x === b));
+      loadRanking();
+    };
+  });
+
+  document.querySelectorAll('[data-ordem]').forEach((b) => {
     b.setAttribute('aria-pressed', b.dataset.ordem === state.ordem);
     b.onclick = () => {
       state.ordem = b.dataset.ordem;
-      document.querySelectorAll('.ordem button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+      document.querySelectorAll('[data-ordem]').forEach((x) => x.setAttribute('aria-pressed', x === b));
       writeUrl();
       renderBars();
     };
@@ -149,6 +166,113 @@ function render() {
   renderContext();
   renderSources();
   renderPrintMeta();
+}
+
+// ---------- ranking geral ----------
+async function loadRanking() {
+  writeUrl();
+  const pesos = Object.entries(state.rpesos).map(([k, v]) => `${k}:${v}`).join(',');
+  const p = new URLSearchParams({ modo: state.rmodo });
+  if (pesos) p.set('pesos', pesos);
+  try {
+    const r = await fetch(`/api/v1/ranking?${p}`);
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `erro ${r.status}`);
+    state.rdata = await r.json();
+    renderRanking();
+  } catch (e) {
+    $('#grafico-ranking').innerHTML = `<p class="vazio">Não foi possível montar o ranking: ${e.message}</p>`;
+  }
+}
+
+function renderPesos(d) {
+  const box = $('#ranking-pesos');
+  const chave = d.componentes.map((c) => c.slug).join('|');
+  if (box.dataset.chave === chave) return; // não recria os controles durante o arraste
+  box.dataset.chave = chave;
+  box.innerHTML = '';
+  for (const c of d.componentes) {
+    const id = `peso-${c.slug}`;
+    const wrap = document.createElement('label');
+    wrap.className = 'peso';
+    wrap.htmlFor = id;
+    const rotulo = (v) => (Number(v) === 0 ? 'fora' : `peso ${v}`);
+    wrap.innerHTML = `<span>${c.nome}</span><output id="${id}-o">${rotulo(c.peso)}</output>
+      <input id="${id}" type="range" min="0" max="3" step="1" value="${c.peso}" aria-describedby="${id}-o">`;
+    const input = wrap.querySelector('input');
+    let t;
+    input.addEventListener('input', () => {
+      wrap.querySelector('output').textContent = rotulo(input.value);
+      state.rpesos[c.slug] = Number(input.value);
+      clearTimeout(t); t = setTimeout(loadRanking, 200);
+    });
+    box.appendChild(wrap);
+  }
+}
+
+function renderRanking() {
+  const d = state.rdata;
+  $('#ranking-descricao').textContent = d.descricao;
+  $('#ranking-formula').textContent = d.formula;
+  $('#ranking-avisos').innerHTML = d.avisos.map((a) => `<li>${a}</li>`).join('');
+  renderPesos(d);
+  const box = $('#grafico-ranking');
+  box.innerHTML = '';
+  const rows = d.governos;
+  const W = Math.max(320, box.clientWidth - 16);
+  const narrow = W < 560;
+  const labelW = narrow ? 0 : 210;
+  const rowH = narrow ? 58 : 42;
+  const H = 8 + rows.length * rowH + 22;
+  const x0 = labelW + 30, x1 = W - 70;
+  const X = (v) => x0 + (v / 100) * (x1 - x0);
+  const s = svg('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `Ranking geral: ${d.nome}` });
+  for (const v of [0, 50, 100]) {
+    svg('line', { x1: X(v), x2: X(v), y1: 0, y2: H - 18, class: v === 0 ? 'prumo' : 'grade' }, s);
+    const t = svg('text', { x: X(v), y: H - 4, 'font-size': 11, 'text-anchor': 'middle', class: 'muted' }, s);
+    t.textContent = v;
+  }
+  rows.forEach((g, k) => {
+    const y = 8 + k * rowH;
+    const barY = narrow ? y + 24 : y + 10;
+    const grp = svg('g', { class: 'alvo', tabindex: 0 }, s);
+    const pos = svg('text', { x: narrow ? x0 - 24 : labelW + 4, y: barY + 15, 'font-size': 15, 'font-weight': 800 }, grp);
+    pos.textContent = g.posicao ? `${g.posicao}º` : '—';
+    const nome = nomeCurto(g.nome);
+    const t = svg('text', { x: narrow ? x0 : 0, y: narrow ? y + 16 : barY + 15, 'font-size': 14, 'font-weight': 600 }, grp);
+    t.textContent = nome + ' ';
+    const ts = svg('tspan', { 'font-size': 12, 'font-weight': 400, class: 'muted' }, t);
+    ts.textContent = `${g.ano_inicio}–${g.ano_fim}`;
+    if (g.nota === null) {
+      const nt = svg('text', { x: x0 + 6, y: barY + 15, 'font-size': 13, class: 'muted' }, grp);
+      nt.textContent = 'sem dados suficientes';
+    } else {
+      svg('rect', { class: 'barra', x: x0, y: barY, width: Math.max(2, X(g.nota) - x0), height: 20, rx: 4,
+        fill: 'var(--brasil)', 'fill-opacity': g.peso_coberto < 100 ? 0.6 : 1 }, grp);
+      const vt = svg('text', { x: X(g.nota) + 6, y: barY + 15, 'font-size': 14, 'font-weight': 600 }, grp);
+      vt.textContent = nf(1).format(g.nota);
+      if (g.peso_coberto < 100 || g.parcial) {
+        const et = svg('text', { x: X(g.nota) + 6, y: barY + 31, 'font-size': 11, class: 'muted' }, grp);
+        et.textContent = [g.peso_coberto < 100 ? `${nf(0).format(g.peso_coberto)}% dos pesos` : '', g.parcial ? 'parcial' : ''].filter(Boolean).join(' · ');
+      }
+    }
+    const linhas = d.componentes.map((c) => {
+      const it = g.itens.find((i) => i.slug === c.slug);
+      return `${c.nome}: ${it.nota === null ? 'sem dado' : `${nf(0).format(it.nota)} (${fmtValor(it.valor, c.unidade, { sinal: c.unidade.startsWith('p.p.') })})`}${c.peso === 0 ? ' · fora' : ''}`;
+    }).join('<br>');
+    const html = `<strong>${nome}</strong> (${g.ano_inicio}–${g.ano_fim})<br>Nota geral: ${g.nota === null ? '—' : nf(1).format(g.nota)}<br>${linhas}`;
+    grp.addEventListener('mousemove', (e) => showTip(html, e.clientX, e.clientY));
+    grp.addEventListener('mouseleave', hideTip);
+    grp.addEventListener('focus', () => { const bb = grp.getBoundingClientRect(); showTip(html, bb.left + 40, bb.top); });
+    grp.addEventListener('blur', hideTip);
+  });
+  box.appendChild(s);
+
+  const cab = d.componentes.map((c) => `<th class="num">${c.nome}${c.peso === 0 ? ' (fora)' : c.peso !== 1 ? ` (peso ${c.peso})` : ''}</th>`).join('');
+  const lin = d.governos.map((g) => `<tr><td>${g.posicao ? `${g.posicao}º` : '—'}</td><td>${nomeCurto(g.nome)}</td>
+    <td class="num"><strong>${g.nota === null ? '—' : nf(1).format(g.nota)}</strong></td>
+    ${d.componentes.map((c) => { const it = g.itens.find((i) => i.slug === c.slug);
+      return `<td class="num">${it.nota === null ? '—' : `${nf(0).format(it.nota)}<br><span class="muted">${fmtValor(it.valor, c.unidade, { sinal: c.unidade.startsWith('p.p.') })}</span>`}</td>`; }).join('')}</tr>`).join('');
+  $('#tabela-ranking').innerHTML = `<table><thead><tr><th>#</th><th>Governo</th><th class="num">Nota</th>${cab}</tr></thead><tbody>${lin}</tbody></table>`;
 }
 
 // ---------- gráfico de barras com o prumo ----------
@@ -414,7 +538,7 @@ $('#btn-link').onclick = async () => {
 $('#btn-pdf').onclick = () => window.print();
 addEventListener('beforeprint', () => { document.querySelector('.tabela').open = true; renderPrintMeta(); });
 let rz;
-addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => state.data && (renderBars(), renderLine()), 150); });
+addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (state.data) { renderBars(); renderLine(); } if (state.rdata) renderRanking(); }, 150); });
 
 // ---------- início ----------
 (async function init() {
@@ -434,6 +558,9 @@ addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => state
   state.gov = new Set(pedidos.length ? pedidos : todos);
   state.ref = state.catalog.referencias.some((r) => r.slug === u.ref) ? u.ref : '';
   state.ordem = u.ordem === 'valor' ? 'valor' : 'periodo';
+  state.rmodo = u.rmodo;
+  state.rpesos = u.rpesos;
   buildControls();
+  loadRanking();
   load();
 })();

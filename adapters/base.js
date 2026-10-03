@@ -11,7 +11,7 @@ export const ADAPTER_VERSION_PREFIX = 'v';
 // "por mil" lido como %), não julgam se o dado é bom ou ruim.
 const BOUNDS = {
   '%':      [-30, 150],
-  '% PIB':  [0, 250],
+  '% PIB':  [-50, 250],   // resultado primário pode ser negativo
   'pontos': [0, 1000],
   'km²':    [0, 100000],
   'índice': [0, 1000],

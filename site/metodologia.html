@@ -29,6 +29,7 @@
       <li><strong>IBGE</strong> (oficial): PIB, inflação (IPCA) e desemprego (PNAD Contínua), lidos direto da API SIDRA.</li>
       <li><strong>Banco Central</strong> (oficial): dívida bruta do governo geral.</li>
       <li><strong>Banco Mundial</strong> (organismo internacional): séries harmonizadas para comparar o Brasil com outros países e grupos de países pela mesma metodologia.</li>
+      <li><strong>FMI</strong> (organismo internacional): resultado primário e dívida bruta do governo geral (World Economic Outlook). O ano corrente é estimativa do FMI e aparece como projeção.</li>
     </ul>
     <p>Os dados são coletados automaticamente todos os dias. Antes de gravar, o sistema confere se a série recebida é a esperada e se os valores são plausíveis. Se algo não bater, o lote inteiro é recusado e o Prumo continua mostrando a última versão verificada. Quando a fonte revisa um número, a versão anterior fica guardada.</p>
 
@@ -47,10 +48,22 @@
     <ul>
       <li><strong>Economia mundial:</strong> crescimento médio do PIB mundial no período, comparado com a média de 1995 até o último ano consolidado. A favor se ficou pelo menos 0,5 ponto percentual acima; contra se ficou 0,5 abaixo.</li>
       <li><strong>Preços de exportação (termos de troca):</strong> variação do índice de termos de troca do Brasil entre o ano anterior à posse e o último ano do governo. A favor acima de +10%; contra abaixo de −10%.</li>
+      <li><strong>Recessão mundial:</strong> cada ano do período em que o PIB mundial caiu (como 2009 e 2020) é registrado à parte, com a queda do mundo, da América Latina e do Brasil. A média de quatro anos esconderia um choque de um ano só, por isso ele aparece separado.</li>
+      <li><strong>Herança fiscal:</strong> resultado primário do governo geral no ano anterior à posse, segundo o FMI. A favor se o governo recebeu superávit de pelo menos 1,5% do PIB; contra se recebeu déficit de 1% do PIB ou mais.</li>
       <li><strong>Ponto de partida:</strong> PIB, inflação e desemprego no ano anterior à posse. Começar em recessão ou com inflação acima de 10% conta como contra.</li>
       <li><strong>Efeito base:</strong> quando o ano anterior foi de queda do PIB, parte do crescimento seguinte é recuperação. Isso é sinalizado para que as taxas sejam lidas junto com os níveis.</li>
       <li><strong>Brasil em relação à América Latina:</strong> diferença média de crescimento entre o Brasil e a média da região nos mesmos anos. Choques que atingem todos os países se anulam nessa diferença.</li>
       <li><strong>Duração:</strong> janelas de até dois anos têm poucos pontos de dados e são sinalizadas.</li>
+    </ul>
+
+    <h2>Ranking geral</h2>
+    <p>O ranking combina vários indicadores numa nota de 0 a 100 para cada governo:</p>
+    <ul>
+      <li><strong>Nota de cada indicador:</strong> entre os seis governos, o melhor resultado recebe 100 e o pior recebe 0. Os demais ficam proporcionalmente entre os dois.</li>
+      <li><strong>Nota geral:</strong> média ponderada das notas dos indicadores com dado: Σ(peso × nota) ÷ Σ(pesos dos indicadores disponíveis). Os pesos começam iguais e podem ser mudados na tela.</li>
+      <li><strong>Dados oficiais:</strong> crescimento do PIB, inflação, desemprego, resultado primário e variação da dívida, em números brutos.</li>
+      <li><strong>Em relação à América Latina:</strong> crescimento, inflação e desemprego do Brasil menos a média da América Latina e Caribe nos mesmos anos (Banco Mundial). É a forma de levar o contexto para a nota sem arbitrar nada: uma crise que atingiu toda a região, como a pandemia, ou um ciclo de commodities que favoreceu todos os exportadores aparece também nos vizinhos e se anula na diferença.</li>
+      <li><strong>Cobertura:</strong> quando falta um indicador para um governo (o desemprego da PNAD só existe desde 2012, por exemplo), a nota usa só os disponíveis e a tela informa a porcentagem dos pesos que entrou na conta.</li>
     </ul>
 
     <h2>O que o Prumo não faz</h2>

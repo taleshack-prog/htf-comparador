@@ -29,7 +29,27 @@
   </header>
 
   <main id="conteudo">
+    <p class="abertura">Seis governos, de 1995 a 2026, medidos com dados oficiais e com o mesmo critério para todos.</p>
+    <section class="bloco" aria-labelledby="t-ranking">
+      <div class="bloco-cabeca">
+        <h2 id="t-ranking">Ranking geral</h2>
+        <div class="ordem" role="group" aria-label="Modo do ranking">
+          <button type="button" data-modo="oficial" aria-pressed="true">Dados oficiais</button>
+          <button type="button" data-modo="relativo" aria-pressed="false">Em relação à América Latina</button>
+        </div>
+      </div>
+      <p id="ranking-descricao" class="nota"></p>
+      <div id="ranking-pesos" class="pesos" aria-label="Peso de cada indicador"></div>
+      <div id="grafico-ranking" class="grafico"></div>
+      <p id="ranking-formula" class="nota formula"></p>
+      <ul id="ranking-avisos" class="avisos"></ul>
+      <details class="tabela">
+        <summary>Ver as notas de cada indicador</summary>
+        <div id="tabela-ranking"></div>
+      </details>
+    </section>
     <section class="controles" aria-label="Escolha o que comparar">
+      <h2 class="titulo-secao">Indicador por indicador</h2>
       <p class="intro">Escolha um indicador e os governos. Cada número vem de uma fonte oficial, com link para conferir.</p>
 
       <div class="linha-controles">
@@ -55,6 +75,7 @@
     </section>
 
     <p id="aviso" class="aviso" role="status" hidden></p>
+
 
     <section class="bloco" aria-labelledby="t-barras">
       <div class="bloco-cabeca">

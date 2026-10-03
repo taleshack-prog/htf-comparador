@@ -80,7 +80,9 @@ a { color: var(--brasil); text-underline-offset: 2px; }
 main { max-width: 1080px; margin: 0 auto; padding: 0 16px 48px; }
 
 /* Controles ------------------------------------------------------------ */
-.controles { padding: 20px 0 8px; border-bottom: 1px solid var(--linha); margin-bottom: 8px; }
+.controles { padding: 28px 0 8px; border-top: 1px solid var(--linha); border-bottom: 1px solid var(--linha); margin: 16px 0 8px; }
+.titulo-secao { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 6px; }
+.abertura { font-size: 19px; line-height: 1.45; margin: 12px 0 0; max-width: 56ch; }
 .intro { margin: 0 0 16px; max-width: 62ch; }
 .linha-controles { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; }
 .campo { display: grid; gap: 4px; font-size: 14px; font-weight: 600; flex: 1 1 260px; max-width: 420px; }
@@ -144,6 +146,15 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 16px 48px; }
 .tabela table { border-collapse: collapse; width: 100%; background: var(--papel); }
 .tabela th, .tabela td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linha); }
 .tabela td.num, .tabela th.num { text-align: right; }
+
+/* Ranking ------------------------------------------------------------------ */
+.pesos { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px 20px; margin: 4px 0 14px; }
+.peso { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px; font-size: 14px; }
+.peso input { grid-column: 1 / -1; width: 100%; accent-color: var(--latao); }
+.peso output { font-weight: 600; font-variant-numeric: tabular-nums; }
+.formula { font-size: 14px; }
+.avisos { margin: 0 0 8px; padding-left: 18px; color: var(--chumbo); font-size: 14px; max-width: 80ch; }
+.secao-rotulo { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--latao); }
 
 /* Contexto -------------------------------------------------------------- */
 .legenda-contexto { list-style: none; padding: 0; margin: 0 0 14px; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--chumbo); }
