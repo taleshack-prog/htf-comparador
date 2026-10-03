@@ -8,21 +8,11 @@ import { readFile, stat } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname, extname, normalize } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import '../lib/env.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PUBLIC = join(ROOT, 'public');
 const PORT = Number(process.env.PORT || 3010);
-
-// .env simples: CHAVE=valor por linha, # para comentário; não sobrescreve o ambiente.
-const envFile = join(ROOT, '.env');
-if (existsSync(envFile)) {
-  for (const line of readFileSync(envFile, 'utf8').split('\n')) {
-    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
-    if (m && !line.trimStart().startsWith('#') && process.env[m[1]] === undefined) {
-      process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
-    }
-  }
-}
 
 const config = JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8'));
 const TYPES = {
