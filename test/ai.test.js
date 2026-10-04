@@ -156,3 +156,12 @@ test('tetos: limite por rede e diário; admin passa; sem chave dá 503; validaç
   assert.equal((await atender(pool, { pergunta: 'curta', visitante: 'f'.repeat(32), ip: '5', env, now: NOW })).status, 400);
   assert.notEqual(hashDe('v:x', { AUTH_SECRET: 'a' }), hashDe('v:x', { AUTH_SECRET: 'b' }));
 });
+
+test('se a API recusar a busca (400), refaz sem ela e registra o motivo', opts, async () => {
+  const f = apiFalsa([{ status: 400 }, { stop_reason: 'end_turn', usage, content: [{ type: 'text', text: 'Resposta só com dados.' }] }]);
+  const r = await perguntar({ pergunta: 'Pergunta qualquer aqui', pool, apiKey: 'k', fetchImpl: f, now: NOW });
+  assert.equal(r.texto, 'Resposta só com dados.');
+  assert.match(r.sem_busca, /400/);
+  assert.ok(f.corpos[0].tools.some((t) => t.name === 'web_search'));
+  assert.ok(!f.corpos[1].tools.some((t) => t.name === 'web_search'));
+});
