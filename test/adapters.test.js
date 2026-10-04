@@ -152,3 +152,16 @@ test('WGI: pede a base 3 com o código atual e grava o link público com sublinh
     ['brasil', 'controle-corrupcao-wb', 2023, 38.4], ['suecia', 'controle-corrupcao-wb', 2023, 91.2]]);
   assert.equal(out[0].url, 'https://data.worldbank.org/indicator/GOV_WGI_CC_SC');
 });
+
+test('SGS: blocos antes do início da série (404 ou objeto de erro) são pulados', async () => {
+  const { default: bcb } = await import('../adapters/bcb-sgs.js');
+  const impl = async (url) => {
+    if (url.includes('01/01/1995')) return { ok: false, status: 404, json: async () => ({}) };
+    if (url.includes('01/01/2005')) return { ok: true, status: 200, json: async () => ({ erro: 'sem valores' }) };
+    return { ok: true, status: 200, json: async () => [{ data: '01/12/2016', valor: '69.8' }] };
+  };
+  const raw = await bcb.fetch({ fetchImpl: impl, now: NOW, log: () => {} });
+  assert.ok(raw['13762'].length >= 1);
+  const vazio = async () => ({ ok: false, status: 404, json: async () => ({}) });
+  await assert.rejects(() => bcb.fetch({ fetchImpl: vazio, now: NOW, log: () => {} }), /nenhum bloco/);
+});

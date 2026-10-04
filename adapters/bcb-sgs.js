@@ -77,10 +77,19 @@ export default {
     for (const s of SERIES) {
       const points = [];
       for (const [ini, fim] of windows(FIRST_YEAR, year)) {
-        const data = await fetchJson(sgsUrl(s.codigo, ini, fim), { fetchImpl, log });
-        if (!Array.isArray(data)) throw new Error(`SGS ${s.codigo}: resposta inesperada`);
+        // Blocos anteriores ao início da série (a 13762 começa em 2006) vêm como 404 ou
+        // objeto de erro: são pulados. Só falha se nenhum bloco trouxer dados.
+        let data;
+        try {
+          data = await fetchJson(sgsUrl(s.codigo, ini, fim), { fetchImpl, log, retries: 1 });
+        } catch (err) {
+          if (/HTTP 404/.test(err.message)) { log(`  SGS ${s.codigo} ${ini}-${fim}: sem dados (404)`); continue; }
+          throw err;
+        }
+        if (!Array.isArray(data)) { log(`  SGS ${s.codigo} ${ini}-${fim}: sem dados (${JSON.stringify(data).slice(0, 120)})`); continue; }
         points.push(...data);
       }
+      if (!points.length) throw new Error(`SGS ${s.codigo}: nenhum bloco de anos trouxe dados`);
       result[s.codigo] = points;
     }
     return result;
