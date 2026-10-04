@@ -38,6 +38,9 @@
   "functions": {
     "api/v1/ask.js": {
       "maxDuration": 120
+    },
+    "api/cron/ingest.js": {
+      "maxDuration": 300
     }
   }
 }

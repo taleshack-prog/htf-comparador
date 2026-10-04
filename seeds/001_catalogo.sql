@@ -130,6 +130,12 @@ FROM (VALUES
   ('despesa-governo-fmi', 'Despesa total do governo geral (FMI)', '% PIB', 'fmi', 'neutra', 'anual', 'media',
      'Gasto total do governo geral (União, estados e municípios), incluindo juros, em % do PIB (FMI). Não existe consenso sobre o tamanho ideal do gasto público: o indicador aparece para consulta e não entra no ranking.',
      'https://www.imf.org/external/datamapper/G_X_G01_GDP_PT/BRA', 'fmi', 'G_X_G01_GDP_PT'),
+  ('pessoal-tesouro', 'Gasto com pessoal e encargos do governo central', '% PIB', 'tesouro', 'menor', 'anual', 'media',
+     'Resultado do Tesouro Nacional, linha "Pessoal e Encargos Sociais" (servidores ativos, aposentados e pensionistas da União, nos três Poderes), em % do PIB, desde 1997. Direção "menor é melhor" é uma escolha do Prumo para medir eficiência do gasto: folha menor em relação ao PIB indica máquina mais enxuta. Quem discorda pode zerar o peso no ranking. Em 2020 e 2021 houve congelamento salarial por lei (LC 173/2020).',
+     'https://www.tesourotransparente.gov.br/ckan/dataset/resultado-do-tesouro-nacional', 'tesouro', 'RTN 2.1-A 4.2'),
+  ('emendas-tesouro', 'Emendas parlamentares individuais e de bancada pagas', '% PIB', 'tesouro', 'menor', 'anual', 'media',
+     'Transferências pagas a estados e municípios por emendas individuais (RP6) e de bancada (RP7), Tesouro Nacional, desde 2015, em % do PIB. NÃO inclui emendas de comissão (RP8) nem de relator (RP9, o chamado orçamento secreto de 2020 a 2022): por isso subestima o total em alguns anos e fica fora do ranking até haver a série completa. A execução dessas emendas é obrigatória pela Constituição desde 2015 (individuais) e 2019 (bancada), e o volume é decidido em boa parte pelo Congresso.',
+     'https://www.tesourotransparente.gov.br/ckan/dataset/emendas-parlamentares', 'tesouro', 'emendas RP6+RP7'),
   ('controle-corrupcao-wb', 'Controle da corrupção (Banco Mundial)', 'pontos', 'worldbank', 'maior', 'anual', 'media',
      'Worldwide Governance Indicators, revisão de 2025: nota de 0 (pior) a 100 (melhor). Mede a PERCEPÇÃO de especialistas, empresas e cidadãos, não casos comprovados; esquemas ocultos só afetam o índice depois de descobertos, então há defasagem entre o fato e a nota. Sai com cerca de um ano de atraso; antes de 2002 a avaliação era bienal.',
      'https://data.worldbank.org/indicator/GOV_WGI_CC_SC', 'worldbank-wgi', 'GOV_WGI_CC.SC')
