@@ -1,6 +1,6 @@
 // Adaptador do Tesouro Nacional (fonte oficial).
-//  - Pessoal e encargos sociais do governo central, % do PIB: Resultado do Tesouro Nacional,
-//    série histórica (planilha), aba "2.1-A" (anual, % do PIB), linha "4.2 Pessoal e Encargos Sociais".
+//  - Governo central, % do PIB, Resultado do Tesouro Nacional (planilha, aba "2.1-A" anual):
+//    pessoal e encargos (4.2), despesa total (4) e tributos federais (1.1 + 1.2 + 1.3).
 //  - Emendas individuais e de bancada pagas (RP6/RP7): CSV do Tesouro Transparente, somado por
 //    ano e dividido pelo PIB nominal da mesma planilha do RTN.
 // Os endereços dos arquivos mudam todo mês (ex.: seriehistoricajul26.xlsx), por isso são
@@ -43,6 +43,20 @@ async function urlDoRecurso(id, teste, { fetchImpl, log }) {
 
 // ---------- RTN (planilha) ----------
 const texto = (c) => (typeof c === 'string' ? c.trim() : '');
+// rótulo comparável: espaços simples, sem nota de rodapé ("1/") nem hífen depois do número
+const rotulo = (c) => texto(c).replace(/\s+/g, ' ').replace(/\s*\d+\/$/, '').replace(/^(\d+(?:\.\d+)*\.?)\s*-\s*/, '$1 ');
+
+// Séries lidas da aba 2.1-A (% do PIB). "soma": linhas somadas; "opcional": pode faltar.
+export const RTN_SERIES = {
+  'pessoal-tesouro': [{ re: /^4\.2 Pessoal e Encargos Sociais$/i }],
+  'despesa-total-tesouro': [{ re: /^4\.? DESPESA TOTAL$/i }],
+  // tributos federais: receita administrada pela Receita Federal + incentivos (negativos) + contribuição ao RGPS
+  'tributos-federais-tesouro': [
+    { re: /^1\.1 Receita Administrada pela RFB/i },
+    { re: /^1\.2 Incentivos Fiscais/i, opcional: true },
+    { re: /^1\.3 Arrecada[çc][ãa]o L[íi]quida para o RGPS/i },
+  ],
+};
 
 export function parseRtn(wb, now = new Date()) {
   if (!wb.abas.includes(ABA)) throw new Error(`RTN: aba ${ABA} ausente (abas: ${wb.abas.slice(0, 12).join(', ')}…)`);
@@ -52,22 +66,44 @@ export function parseRtn(wb, now = new Date()) {
     throw new Error(`RTN: aba ${ABA} não está em % do PIB`);
   }
   const cab = L.find((l) => /^Discrimina/i.test(texto(l[0])));
-  const pessoal = L.find((l) => /^4\.2\s+Pessoal e Encargos Sociais$/i.test(texto(l[0]).replace(/\s+/g, ' ')));
   const pib = L.find((l) => /^PIB Nominal/i.test(texto(l[0])));
-  if (!cab || !pessoal || !pib) throw new Error('RTN: cabeçalho, linha de pessoal ou PIB nominal não encontrados');
+  if (!cab || !pib) throw new Error('RTN: cabeçalho ou PIB nominal não encontrados');
   const year = now.getUTCFullYear();
-  const out = { pessoal: [], pib: new Map() };
+  const linhasDe = {};
+  for (const [ind, partes] of Object.entries(RTN_SERIES)) {
+    linhasDe[ind] = [];
+    for (const p of partes) {
+      const l = L.find((x) => p.re.test(rotulo(x[0])));
+      if (!l && !p.opcional) {
+        const vistos = L.map((x) => rotulo(x[0])).filter((t) => /^\d/.test(t)).slice(0, 25).join(' | ');
+        throw new Error(`RTN: linha ${p.re} não encontrada para ${ind}. Rótulos na aba: ${vistos}`);
+      }
+      if (l) linhasDe[ind].push(l);
+    }
+  }
+  // se a linha 1.1 já vier "líquida de incentivos", somar a 1.2 contaria os incentivos duas vezes
+  const trib = linhasDe['tributos-federais-tesouro'];
+  if (/l[íi]quida de incentivos/i.test(rotulo(trib[0][0]))) {
+    linhasDe['tributos-federais-tesouro'] = trib.filter((l) => !/^1\.2 Incentivos/i.test(rotulo(l[0])));
+  }
+  const out = { series: {}, pib: new Map() };
+  for (const ind of Object.keys(RTN_SERIES)) out.series[ind] = [];
   for (let j = 1; j < cab.length; j++) {
     const ano = cab[j];
     if (!Number.isInteger(ano) || ano < 1990 || ano > year) continue;
-    const p = pessoal[j];
-    if (typeof p === 'number') {
-      if (p <= 0 || p >= 1) throw new Error(`RTN: pessoal de ${ano} fora da escala de fração (${p})`);
-      out.pessoal.push({ ano, valor: round4(p * 100), qualidade: qualidade(ano, year) });
+    for (const [ind, linhas] of Object.entries(linhasDe)) {
+      const vs = linhas.map((l) => l[j]);
+      if (vs.some((v) => typeof v !== 'number')) continue;   // ano sem todas as parcelas
+      const f = vs.reduce((a, b) => a + b, 0);
+      if (f <= 0 || f >= 1) throw new Error(`RTN: ${ind} de ${ano} fora da escala de fração (${f})`);
+      out.series[ind].push({ ano, valor: round4(f * 100), qualidade: qualidade(ano, year) });
     }
     if (typeof pib[j] === 'number' && pib[j] > 0) out.pib.set(ano, pib[j] * 1e6);   // R$ milhões → R$
   }
-  if (out.pessoal.length < 10) throw new Error(`RTN: só ${out.pessoal.length} anos de pessoal lidos`);
+  for (const [ind, obs] of Object.entries(out.series)) {
+    if (obs.length < 10) throw new Error(`RTN: só ${obs.length} anos lidos para ${ind}`);
+  }
+  out.pessoal = out.series['pessoal-tesouro'];
   return out;
 }
 
@@ -118,7 +154,7 @@ export async function somarEmendas(chunks) {
 
 export default {
   slug: 'tesouro',
-  version: 'tesouro@1',
+  version: 'tesouro@2',
   async fetch({ fetchImpl, log }) {
     const xlsxUrl = await urlDoRecurso(RTN_ID, (r) => /xlsx/i.test(r.format) && /s[ée]rie hist/i.test(r.name), { fetchImpl, log });
     const res = await baixar(xlsxUrl, { fetchImpl, log });
@@ -132,7 +168,8 @@ export default {
   normalize(raw, { now }) {
     const rtn = parseRtn(readXlsx(raw.rtnBuf), now);
     const year = now.getUTCFullYear();
-    const obs = rtn.pessoal.map((o) => ({ entity: 'brasil', indicator: 'pessoal-tesouro', ...o, url: RTN_PAGINA }));
+    const obs = Object.entries(rtn.series).flatMap(([indicator, serie]) =>
+      serie.map((o) => ({ entity: 'brasil', indicator, ...o, url: RTN_PAGINA })));
     for (const [ano, a] of raw.emendas.porAno) {
       const pib = rtn.pib.get(ano);
       if (!pib) continue;   // ano sem PIB anual publicado (ano corrente) fica de fora

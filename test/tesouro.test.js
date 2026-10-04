@@ -18,12 +18,21 @@ test('RTN: lê pessoal em % do PIB (fração ×100) e o PIB nominal da aba 2.1-A
   assert.equal(r.pessoal.at(-1).ano, 2025);
   assert.equal(r.pessoal.at(-1).qualidade, 'parcial');
   assert.equal(r.pib.get(1997), 1e12);
+  // tributos = 1.1 + 1.2 (incentivos, negativos) + 1.3; despesa total pela linha 4
+  assert.deepEqual(r.series['tributos-federais-tesouro'][0], { ano: 1997, valor: 16.9, qualidade: 'oficial' });
+  assert.equal(r.series['despesa-total-tesouro'][0].valor, 18);
+});
+
+test('RTN: linha ausente gera erro com os rótulos encontrados (diagnóstico)', () => {
+  const L = [['% do PIB'], ['Discriminação', 2020], ['4.2  Pessoal e Encargos Sociais', 0.04], [' PIB Nominal (R$ Milhões)', 1]];
+  assert.throws(() => parseRtn({ abas: ['2.1-A'], linhas: () => L }, NOW), /DESPESA TOTAL.*Rótulos na aba: 4\.2 Pessoal/);
 });
 
 test('RTN: recusa planilha sem a aba, sem "% do PIB" ou fora da escala', () => {
   assert.throws(() => parseRtn({ abas: ['1.1'], linhas: () => [] }, NOW), /aba 2.1-A ausente/);
   assert.throws(() => parseRtn({ abas: ['2.1-A'], linhas: () => [['R$ Milhões']] }, NOW), /% do PIB/);
-  const L = [['% do PIB'], ['Discriminação', 2020], ['4.2  Pessoal e Encargos Sociais', 4.2], [' PIB Nominal (R$ Milhões)', 1]];
+  const L = [['% do PIB'], ['Discriminação', 2020], ['1.1 Receita Administrada pela RFB', 0.1], ['1.3 Arrecadação Líquida para o RGPS', 0.05],
+    ['4. DESPESA TOTAL', 0.18], ['4.2  Pessoal e Encargos Sociais', 4.2], [' PIB Nominal (R$ Milhões)', 1]];
   assert.throws(() => parseRtn({ abas: ['2.1-A'], linhas: () => L }, NOW), /escala de fração/);
 });
 
@@ -58,7 +67,9 @@ test('adaptador completo: descobre URLs no CKAN, baixa e normaliza dentro do cat
   const emendas = obs.filter((o) => o.indicator === 'emendas-tesouro');
   assert.deepEqual(emendas.map((o) => [o.ano, o.valor]), [[2015, round(1500000.5 / (1e12 * (1 + 18 * 0.1)) * 100)]]);   // 2026 sem PIB: fora
   assert.equal(obs.filter((o) => o.indicator === 'pessoal-tesouro').length, 29);
-  const catalog = { indicators: new Map([['pessoal-tesouro', { unidade: '% PIB' }], ['emendas-tesouro', { unidade: '% PIB' }]]), entities: new Map([['brasil', {}]]) };
+  assert.equal(obs.filter((o) => o.indicator === 'tributos-federais-tesouro').length, 29);
+  const un = { unidade: '% PIB' };
+  const catalog = { indicators: new Map(['pessoal-tesouro', 'emendas-tesouro', 'despesa-total-tesouro', 'tributos-federais-tesouro'].map((k) => [k, un])), entities: new Map([['brasil', {}]]) };
   assert.equal(validate(obs, catalog, { now: NOW }).ok, true);
   assert.ok(chamadas.some((u) => u === 'https://t/serie.xlsx'));
 });
