@@ -1,7 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
-import { tipoFonte, montarResposta, perguntar, normalizarPergunta, chaveCache, custoUsd, ALLOWED_DOMAINS, MARCA_FORA } from '../lib/ai.js';
+import { tipoFonte, dominiosBloqueados, montarResposta, perguntar, normalizarPergunta, chaveCache, custoUsd, ALLOWED_DOMAINS, MARCA_FORA } from '../lib/ai.js';
 import { atender, hashDe } from '../lib/ask.js';
 import { migrate, seed } from '../lib/migrations.js';
 
@@ -10,7 +10,8 @@ const NOW = new Date('2026-10-03T12:00:00Z');
 test('rótulo da fonte pelo domínio, do mais específico ao mais geral', () => {
   assert.equal(tipoFonte('https://www.ibge.gov.br/x'), 'governo');
   assert.equal(tipoFonte('https://www.imf.org/en/Publications'), 'organismo');
-  assert.equal(tipoFonte('https://www.economist.com/a'), 'imprensa');
+  assert.equal(tipoFonte('https://www.bloomberg.com/a'), 'imprensa');
+  assert.equal(tipoFonte('https://www.economist.com/a'), 'outro');
   assert.equal(tipoFonte('https://piaui.folha.uol.com.br/a'), 'imprensa');
   assert.equal(tipoFonte('https://portal.fgv.br/a'), 'academia');
   assert.equal(tipoFonte('https://www.transparency.org/cpi'), 'ong');
@@ -35,7 +36,7 @@ test('resposta final: só o texto após a última busca, com [n] por URL e rótu
     { type: 'server_tool_use', id: 's1', name: 'web_search', input: { query: 'x' } },
     { type: 'web_search_tool_result', tool_use_id: 's1', content: [] },
     { type: 'text', text: 'A inflação caiu', citations: [{ type: 'web_search_result_location', url: 'https://www.imf.org/a', title: 'FMI', cited_text: 'trecho' }] },
-    { type: 'text', text: ' e o FMI confirma.', citations: [{ url: 'https://www.imf.org/a', title: 'FMI' }, { url: 'https://www.economist.com/b', title: 'Economist' }] },
+    { type: 'text', text: ' e o FMI confirma.', citations: [{ url: 'https://www.imf.org/a', title: 'FMI' }, { url: 'https://valor.globo.com/b', title: 'Valor' }] },
   ];
   const r = montarResposta(content, [{ indicador: 'ipca-anual', nome: 'IPCA', fonte: 'IBGE', url: 'u' }, { indicador: 'ipca-anual', nome: 'IPCA' }]);
   assert.equal(r.texto, 'A inflação caiu [1] e o FMI confirma. [1] [2]');
@@ -164,4 +165,20 @@ test('se a API recusar a busca (400), refaz sem ela e registra o motivo', opts, 
   assert.match(r.sem_busca, /400/);
   assert.ok(f.corpos[0].tools.some((t) => t.name === 'web_search'));
   assert.ok(!f.corpos[1].tools.some((t) => t.name === 'web_search'));
+});
+
+test('domínio bloqueado ao robô: tira da lista e refaz com busca', opts, async () => {
+  const msg = "The following domains are not accessible to our user agent: ['bloomberg.com', 'folha.uol.com.br']. Read more: x";
+  assert.deepEqual(dominiosBloqueados(msg), ['bloomberg.com', 'folha.uol.com.br']);
+  const f = async (url, init) => {
+    f.corpos.push(JSON.parse(init.body));
+    if (f.corpos.length === 1) return { ok: false, status: 400, json: async () => ({ error: { message: msg } }) };
+    return { ok: true, status: 200, json: async () => ({ stop_reason: 'end_turn', usage, content: [{ type: 'text', text: 'ok' }] }) };
+  };
+  f.corpos = [];
+  const r = await perguntar({ pergunta: 'Pergunta qualquer aqui', pool, apiKey: 'k', fetchImpl: f, now: NOW });
+  const ws = f.corpos[1].tools.find((t) => t.name === 'web_search');
+  assert.ok(ws && !ws.allowed_domains.includes('bloomberg.com') && ws.allowed_domains.includes('imf.org'));
+  assert.deepEqual(r.dominios_removidos, ['bloomberg.com', 'folha.uol.com.br']);
+  assert.equal(r.sem_busca, undefined);
 });
