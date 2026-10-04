@@ -593,8 +593,10 @@ function renderResposta(pergunta, r) {
     <p class="resposta-meta">Resposta gerada por IA em ${quando}${r.em_cache ? ' (já respondida antes; não gastou consulta)' : ''}. Pode conter erros: confira os números nos gráficos e nas fontes.</p>`;
 }
 
+let modoAdmin = false;
 function mostrarCota(c) {
   const info = $('#cota-info');
+  if (modoAdmin) { info.textContent = 'Modo administrador: consultas sem cota neste navegador.'; return; }
   if (!c) { info.textContent = ''; return; }
   info.textContent = c.gratis_restantes > 0
     ? 'Você tem 1 consulta grátis. Perguntas já respondidas antes não gastam consulta.'
@@ -606,6 +608,7 @@ async function initPergunte() {
   try { st = await (await fetch('/api/v1/ask', { credentials: 'same-origin' })).json(); } catch { return; }
   if (!st?.disponivel) return;
   $('#pergunte').hidden = false;
+  modoAdmin = Boolean(st.admin);
   mostrarCota(st.cota);
   const campo = $('#campo-pergunta');
   campo.addEventListener('input', () => { $('#contador').textContent = `${campo.value.length} / 500`; });

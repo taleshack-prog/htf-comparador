@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Prumo — administrador</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <main class="texto">
+    <h1>Modo administrador</h1>
+    <p class="nota">Libera consultas à IA sem cota neste navegador por 30 dias. Use o valor de <code>AI_ADMIN_TOKEN</code> cadastrado na Vercel.</p>
+    <form id="f" class="form-pergunta">
+      <label for="t">Token</label>
+      <input id="t" type="password" autocomplete="off" required minlength="16" style="font:inherit;padding:10px 12px;border:1px solid var(--linha);border-radius:var(--raio);background:var(--papel);color:var(--grafite)">
+      <div class="form-linha"><button class="botao botao-forte" type="submit">Entrar</button><button class="botao" type="button" id="sair">Sair do modo</button></div>
+    </form>
+    <p id="msg" class="dica" role="status"></p>
+    <p><a href="/">Voltar ao Prumo</a></p>
+  </main>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
