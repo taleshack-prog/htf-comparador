@@ -48,6 +48,21 @@
         <div id="tabela-ranking"></div>
       </details>
     </section>
+    <section class="bloco pergunte" aria-labelledby="t-pergunte" id="pergunte" hidden>
+      <h2 id="t-pergunte">Pergunte ao Prumo</h2>
+      <p class="nota">Faça uma pergunta sobre os governos. A resposta usa os dados desta página e, quando precisa, pesquisa em fontes de referência. Cada fonte aparece com o tipo dela, para você conferir.</p>
+      <form id="form-pergunta" class="form-pergunta">
+        <label for="campo-pergunta" class="sr">Sua pergunta</label>
+        <textarea id="campo-pergunta" rows="3" maxlength="500" required minlength="8"
+          placeholder="Ex.: Como a inflação do governo Temer se compara com a dos outros, considerando a recessão que ele herdou?"></textarea>
+        <div class="form-linha">
+          <span id="contador" class="dica">0 / 500</span>
+          <button type="submit" id="btn-perguntar" class="botao botao-forte">Perguntar</button>
+        </div>
+      </form>
+      <p id="cota-info" class="dica"></p>
+      <div id="resposta" class="resposta" aria-live="polite"></div>
+    </section>
     <section class="controles" aria-label="Escolha o que comparar">
       <h2 class="titulo-secao">Indicador por indicador</h2>
       <p class="intro">Escolha um indicador e os governos. Cada número vem de uma fonte oficial, com link para conferir.</p>

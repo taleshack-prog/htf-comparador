@@ -555,6 +555,85 @@ addEventListener('beforeprint', () => { document.querySelector('.tabela').open =
 let rz;
 addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (state.data) { renderBars(); renderLine(); } if (state.rdata) renderRanking(); }, 150); });
 
+
+// ---------- Pergunte ao Prumo ----------
+const escHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeUrl = (u) => (/^https?:\/\//i.test(u || '') ? u : '#');
+
+// Texto da IA → HTML seguro: escapa tudo, depois parágrafos, listas "- ", **negrito** e [n] → link da fonte.
+function textoParaHtml(texto, nFontes) {
+  const inline = (l) => escHtml(l)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/ ?\[(\d{1,2})\]/g, (m, n) => (Number(n) >= 1 && Number(n) <= nFontes ? `<sup><a href="#fonte-${n}">[${n}]</a></sup>` : m));
+  const item = /^\s*[-•]\s+/;
+  // agrupa linhas consecutivas de lista em <ul>, o resto em <p>
+  return texto.split(/\n{2,}/).map((bloco) => {
+    const partes = [];
+    for (const l of bloco.split('\n').filter((x) => x.trim())) {
+      const tipo = item.test(l) ? 'ul' : 'p';
+      if (partes.at(-1)?.tipo === tipo) partes.at(-1).linhas.push(l); else partes.push({ tipo, linhas: [l] });
+    }
+    return partes.map((g) => (g.tipo === 'ul'
+      ? `<ul>${g.linhas.map((l) => `<li>${inline(l.replace(item, ''))}</li>`).join('')}</ul>`
+      : `<p>${g.linhas.map(inline).join('<br>')}</p>`)).join('');
+  }).join('');
+}
+
+function renderResposta(pergunta, r) {
+  const fontes = r.fontes || [];
+  const dados = r.dados || [];
+  const quando = new Date(r.gerado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  const itensDados = dados.map((d) => `<li><span><span class="selo selo-prumo">${escHtml(d.rotulo)}</span>${escHtml(d.nome)}${d.fonte ? ` — ${escHtml(d.fonte)}` : ''}${d.url ? ` · <a href="${escHtml(safeUrl(d.url))}" target="_blank" rel="noopener">conferir na fonte</a>` : ''}</span></li>`).join('');
+  const itensWeb = fontes.map((f) => `<li id="fonte-${f.n}"><span>[${f.n}] <span class="selo selo-${escHtml(f.tipo)}">${escHtml(f.rotulo)}</span><a href="${escHtml(safeUrl(f.url))}" target="_blank" rel="noopener">${escHtml(f.titulo)}</a></span>${f.trecho ? `<span class="trecho">“${escHtml(f.trecho)}”</span>` : ''}</li>`).join('');
+  $('#resposta').innerHTML = `
+    <p class="resposta-pergunta">${escHtml(pergunta)}</p>
+    <div class="resposta-corpo">${textoParaHtml(r.texto, fontes.length)}</div>
+    ${itensDados ? `<h3>Dados do Prumo usados</h3><ul class="lista-fontes">${itensDados}</ul>` : ''}
+    ${itensWeb ? `<h3>Fontes pesquisadas</h3><ul class="lista-fontes">${itensWeb}</ul>` : ''}
+    <p class="resposta-meta">Resposta gerada por IA em ${quando}${r.em_cache ? ' (já respondida antes; não gastou consulta)' : ''}. Pode conter erros: confira os números nos gráficos e nas fontes.</p>`;
+}
+
+function mostrarCota(c) {
+  const info = $('#cota-info');
+  if (!c) { info.textContent = ''; return; }
+  info.textContent = c.gratis_restantes > 0
+    ? 'Você tem 1 consulta grátis. Perguntas já respondidas antes não gastam consulta.'
+    : 'Sua consulta grátis já foi usada. Créditos e assinatura chegam em breve; perguntas já respondidas antes continuam liberadas.';
+}
+
+async function initPergunte() {
+  let st;
+  try { st = await (await fetch('/api/v1/ask', { credentials: 'same-origin' })).json(); } catch { return; }
+  if (!st?.disponivel) return;
+  $('#pergunte').hidden = false;
+  mostrarCota(st.cota);
+  const campo = $('#campo-pergunta');
+  campo.addEventListener('input', () => { $('#contador').textContent = `${campo.value.length} / 500`; });
+  $('#form-pergunta').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pergunta = campo.value.trim();
+    if (pergunta.length < 8) { campo.focus(); return; }
+    const btn = $('#btn-perguntar');
+    btn.disabled = true;
+    $('#resposta').innerHTML = '<p class="carregando">Consultando os dados e as fontes. Pode levar até um minuto.</p>';
+    try {
+      const res = await fetch('/api/v1/ask', { method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pergunta }) });
+      const r = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        $('#resposta').innerHTML = `<p class="aviso">${escHtml(r.error || `erro ${res.status}`)}</p>`;
+      } else {
+        renderResposta(pergunta, r);
+      }
+      if (r.cota) mostrarCota(r.cota);
+    } catch {
+      $('#resposta').innerHTML = '<p class="aviso">Sem conexão com o servidor. Tente de novo.</p>';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
 // ---------- início ----------
 (async function init() {
   try {
@@ -578,4 +657,5 @@ addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if 
   buildControls();
   loadRanking();
   load();
+  initPergunte();
 })();

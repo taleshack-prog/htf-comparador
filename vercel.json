@@ -5,19 +5,39 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/health/summary", "destination": "/api/health/summary" }
+    {
+      "source": "/health/summary",
+      "destination": "/api/health/summary"
+    }
   ],
   "crons": [
-    { "path": "/api/cron/ingest", "schedule": "17 9 * * *" }
+    {
+      "path": "/api/cron/ingest",
+      "schedule": "17 9 * * *"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/v1/ask.js": {
+      "maxDuration": 120
+    }
+  }
 }

@@ -37,7 +37,7 @@ function sgsRoutes(valor = 70) {
 
 test('migrações aplicam do zero e são idempotentes', opts, async () => {
   const first = await migrate(pool, quiet);
-  assert.equal(first.length, 5);
+  assert.equal(first.length, 6);
   assert.deepEqual(await migrate(pool, quiet), []);
   assert.deepEqual(await pendingMigrations(pool), []);
 });

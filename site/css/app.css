@@ -198,11 +198,49 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 16px 48px; }
 }
 
 /* Impressão / PDF: só o conteúdo, com fontes e link da visualização. */
+
+/* Pergunte ao Prumo ------------------------------------------------------ */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.form-pergunta { display: grid; gap: 8px; max-width: 760px; }
+.form-pergunta textarea {
+  width: 100%; font: inherit; color: var(--grafite); background: var(--papel);
+  border: 1px solid var(--linha); border-radius: var(--raio); padding: 10px 12px; resize: vertical; min-height: 84px;
+}
+.form-pergunta textarea:focus { border-color: var(--foco); }
+.form-linha { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.form-linha .dica { margin: 0; }
+.botao:disabled { opacity: .55; cursor: not-allowed; }
+.resposta { max-width: 760px; }
+.resposta:empty { display: none; }
+.resposta-corpo { background: var(--papel); border: 1px solid var(--linha); border-left: 3px solid var(--latao);
+  border-radius: var(--raio); padding: 14px 18px; margin-top: 14px; }
+.resposta-corpo p { margin: 0 0 10px; }
+.resposta-corpo ul { margin: -4px 0 10px; padding-left: 20px; }
+.resposta-corpo li { margin-bottom: 4px; }
+.resposta-corpo sup a { text-decoration: none; font-weight: 600; font-size: 12px; padding: 0 1px; }
+.resposta-pergunta { font-weight: 600; margin: 14px 0 0; }
+.resposta-meta { color: var(--chumbo); font-size: 13px; margin: 8px 0 0; }
+.resposta h3 { font-size: 15px; margin: 16px 0 6px; }
+.lista-fontes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.lista-fontes li { font-size: 14px; display: grid; gap: 2px; }
+.lista-fontes .trecho { color: var(--chumbo); font-size: 13px; }
+.selo { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px;
+  border: 1px solid var(--linha); color: var(--chumbo); margin-right: 6px; white-space: nowrap; }
+.selo-prumo { border-color: var(--latao); color: var(--latao); }
+.selo-governo, .selo-organismo { border-color: var(--brasil); color: var(--brasil); }
+.selo-imprensa, .selo-ong, .selo-academia { border-color: var(--desfavoravel); color: var(--desfavoravel); }
+.carregando { color: var(--chumbo); margin-top: 14px; display: flex; gap: 10px; align-items: center; }
+.carregando::before { content: ""; width: 2px; height: 22px; background: var(--latao); transform-origin: top center;
+  animation: pendulo 1.4s ease-in-out infinite alternate; }
+@keyframes pendulo { from { transform: rotate(14deg); } to { transform: rotate(-14deg); } }
+@media (prefers-reduced-motion: reduce) { .carregando::before { animation: none; } }
+
 @media print {
   @page { margin: 14mm; }
   :root { --cal: #fff; --papel: #fff; --grafite: #000; --chumbo: #444; --linha: #ccc; --faixa: #f0f0f0; }
   body { background: #fff; font-size: 11pt; }
-  .controles, .ordem, .topo-nav, .skip, .tabela summary, .tooltip { display: none !important; }
+  .controles, .ordem, .topo-nav, .skip, .tabela summary, .tooltip, .form-pergunta, #cota-info, .carregando { display: none !important; }
+  .pergunte:not(:has(.resposta-corpo)) { display: none !important; }
   .tabela { display: block; }
   .tabela[open] summary, .tabela div { display: block; }
   .bloco { break-inside: avoid; padding-top: 14px; }
