@@ -32,7 +32,7 @@ function ipcaRoutes(dez2020 = 1) {
   return fakeFetch([['apisidra.ibge.gov.br/values/t/1737', sidraPayload(pts, { periodo: 'Mês', variavel: 'IPCA - Variação mensal' })]]);
 }
 function sgsRoutes(valor = 70) {
-  return fakeFetch([['sgs.13762/', (u) => (u.includes('01/01/2014') ? sgsMonthly(2020, Array(12).fill(valor)) : [])]]);
+  return fakeFetch([['sgs.13762/', (u) => (u.includes('01/01/2016') && u.includes('sgs.13762') ? sgsMonthly(2020, Array(12).fill(valor)) : [])]]);
 }
 
 test('migrações aplicam do zero e são idempotentes', opts, async () => {

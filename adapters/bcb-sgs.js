@@ -16,9 +16,9 @@ export const FIRST_YEAR = 1994;
 // sinal: -1 inverte a convenção das NFSP (positivo = necessidade de financiamento) para
 // que positivo signifique superávit.
 export const SERIES = [
-  { indicator: 'divida-bruta', codigo: '13762', tipo: 'mensal_dezembro' },
-  { indicator: 'juros-nominais-bcb', codigo: '5760', tipo: 'mensal_dezembro' },
-  { indicator: 'estatais-primario-bcb', codigo: '5790', tipo: 'mensal_dezembro', sinal: -1 },
+  { indicator: 'divida-bruta', codigo: '13762', tipo: 'mensal_dezembro', inicio: 2006 },
+  { indicator: 'juros-nominais-bcb', codigo: '5760', tipo: 'mensal_dezembro', inicio: 2002 },
+  { indicator: 'estatais-primario-bcb', codigo: '5790', tipo: 'mensal_dezembro', sinal: -1, inicio: 2002 },
 ];
 // Séries usadas só para calcular o juro real (não são gravadas): Selic anualizada do mês
 // (4189) e IPCA mensal (433, mesma série do IBGE espelhada no SGS).
@@ -113,7 +113,7 @@ export default {
     const result = {};
     for (const s of [...SERIES, ...AUXILIARES]) {
       const points = [];
-      for (const [ini, fim] of windows(FIRST_YEAR, year)) {
+      for (const [ini, fim] of windows(s.inicio || FIRST_YEAR, year)) {   // começa no 1º ano da série: menos chamadas
         // Blocos anteriores ao início da série (a 13762 começa em 2006) vêm como 404 ou
         // objeto de erro: são pulados. Só falha se nenhum bloco trouxer dados.
         let data;
