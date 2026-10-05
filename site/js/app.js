@@ -143,9 +143,9 @@ function syncRef() {
 }
 
 // ---------- carga ----------
-// Versão dos dados (hora da última coleta): entra na URL das consultas para que uma
-// coleta nova nunca seja escondida por resposta antiga guardada no cache da CDN.
-const versaoDados = () => String(Date.parse(state.catalog?.atualizado_em || '') || 0).slice(0, 10);
+// Versão (código publicado + hora da última coleta): entra na URL das consultas para que
+// deploy ou coleta nova nunca sejam escondidos por resposta antiga no cache da CDN.
+const versaoDados = () => state.catalog?.versao || String(Date.parse(state.catalog?.atualizado_em || '') || 0);
 async function load() {
   writeUrl();
   const p = new URLSearchParams({ ind: state.ind, gov: [...state.gov].join(',') });
