@@ -1,7 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
-import { normalize, parsePesos, ranking, MODOS } from '../lib/ranking.js';
+import { normalize, normalizeEscala, historicoAnual, parsePesos, ranking, MODOS } from '../lib/ranking.js';
 import { parseImf } from '../adapters/imf.js';
 import { migrate, seed } from '../lib/migrations.js';
 import { compare } from '../lib/compare.js';
@@ -12,6 +12,17 @@ test('normalização: melhor = 100, pior = 0, respeitando a direção', () => {
   assert.deepEqual(normalize([1, 3, null, 2], 'maior'), [0, 100, null, 50]);
   assert.deepEqual(normalize([1, 3, 2], 'menor'), [100, 0, 50]);
   assert.deepEqual(normalize([2, 2], 'maior'), [50, 50]);
+});
+
+test('escala histórica: diferença pequena entre governos vira diferença pequena de nota', () => {
+  // médias 0,02 e 0,05 numa série anual que vai de -1 a 1
+  assert.deepEqual(normalizeEscala([0.02, 0.05], 'maior', [-1, 1]), [51, 52.5]);
+  // governo fora da amplitude histórica amplia a escala (nota nunca sai de 0–100)
+  assert.deepEqual(normalizeEscala([3, null], 'menor', [0, 1]), [0, null]);
+  const br = new Map([[2000, { valor: 10 }], [2004, { valor: 14 }], [2005, { valor: 20, qualidade: 'projecao' }]].map(([a, o]) => [a, { qualidade: 'oficial', ...o }]));
+  assert.deepEqual(historicoAnual(br, null, 'media'), [10, 14]);
+  assert.deepEqual(historicoAnual(br, null, 'variacao'), [4]);
+  assert.ok(!MODOS.oficial.componentes.some((c) => c.slug === 'juro-real-bcb'));
 });
 
 test('pesos: padrão 1, aceita 0–10, ignora indicador desconhecido', () => {
