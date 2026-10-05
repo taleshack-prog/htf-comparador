@@ -125,7 +125,7 @@ FROM (VALUES
      'Receitas menos despesas, sem contar juros, do governo geral (FMI, Fiscal Monitor). Positivo = superávit. O ano corrente é estimativa do FMI e aparece como projeção.',
      'https://www.imf.org/external/datamapper/GGXONLB_G01_GDP_PT@FM/BRA', 'fmi', 'GGXONLB_G01_GDP_PT'),
   ('divida-bruta-fmi', 'Dívida bruta do governo geral (FMI)', '% PIB', 'fmi', 'menor', 'anual', 'variacao',
-     'Dívida bruta do governo geral pela metodologia do FMI (World Economic Outlook), que difere da metodologia do Banco Central. A variação compara o último ano do governo com o ano anterior à posse.',
+     'Dívida bruta do governo geral pela metodologia do FMI (World Economic Outlook), a mesma da série 4537 do Banco Central (metodologia usada até 2007, que inclui os títulos na carteira do Banco Central). É a única série oficial com o ano-base de 2002; a série atual do Banco Central (13762) começa em 2006 e dá níveis menores. Entra na nota como ritmo anual: último ano do governo menos o ano anterior à posse, dividido pelos anos. Inclui o que o governo não controla sozinho: juros sobre a dívida recebida (a Selic é definida pelo Banco Central), câmbio e o efeito do crescimento do PIB. Não há série oficial de dívida desde 1994, por isso o FHC fica sem este indicador.',
      'https://www.imf.org/external/datamapper/GGXWDG_NGDP@WEO/BRA', 'fmi', 'GGXWDG_NGDP'),
   ('despesa-governo-fmi', 'Despesa total do governo geral (FMI)', '% PIB', 'fmi', 'neutra', 'anual', 'media',
      'Gasto total do governo geral (União, estados e municípios), incluindo juros, em % do PIB (FMI), para consulta. O ranking usa o gasto do governo central pelo Tesouro, que é o que o governo federal controla e cobre desde 1997.',

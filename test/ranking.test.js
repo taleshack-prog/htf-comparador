@@ -176,7 +176,8 @@ test('trajetória: média do mandato menos o ano anterior à posse; escala robus
   const n = normalizeRobusta([-900, 0, 4], 'menor', h);
   assert.equal(n[0], 100);
   assert.ok(n[1] > 40 && n[1] < 60);
-  assert.ok(!M.oficial.componentes.some((c) => ['divida-bruta-fmi', 'juros-nominais-tesouro'].includes(c.slug)));
+  assert.ok(M.oficial.componentes.some((c) => c.slug === 'divida-bruta-fmi'));      // dívida: fim − início, por ano
+  assert.ok(!M.oficial.componentes.some((c) => c.slug === 'juros-nominais-tesouro'));
   assert.ok(M.trajetoria.trajetoria);
   assert.ok(!M.trajetoria.componentes.some((c) => c.slug.startsWith('pib')));
 });
