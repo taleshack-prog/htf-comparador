@@ -24,6 +24,7 @@ test('pergunta normalizada ignora acento, caixa e pontuação na chave do cache'
   assert.equal(normalizarPergunta('  Inflação no governo   TEMER?! '), 'inflacao no governo temer');
   assert.equal(chaveCache('Inflação no Temer?', 'm'), chaveCache('inflacao no temer', 'm'));
   assert.notEqual(chaveCache('inflacao no temer', 'm'), chaveCache('inflacao no temer', 'outro'));
+  assert.notEqual(chaveCache('inflacao no temer', 'm', '2026-10-03'), chaveCache('inflacao no temer', 'm', '2026-10-04'));
 });
 
 test('custo: tokens, cache e buscas', () => {

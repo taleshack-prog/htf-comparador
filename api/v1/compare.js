@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   try {
     const data = await compare(getPool(), { indicador: ind, governos: gov, referencia: ref || null });
     if (!data) return sendJson(res, 404, { error: `indicador "${ind}" não existe` });
-    sendJson(res, 200, data, { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=86400' });
+    sendJson(res, 200, data, { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600' });
   } catch (err) {
     console.error(err);
     sendJson(res, 503, { error: 'dados indisponíveis no momento; tente de novo em instantes' });

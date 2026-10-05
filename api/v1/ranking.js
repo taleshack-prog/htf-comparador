@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
   try {
     sendJson(res, 200, await ranking(getPool(), { modo, pesos }),
-      { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=86400' });
+      { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600' });
   } catch (err) {
     console.error(err);
     sendJson(res, 503, { error: 'dados indisponíveis no momento; tente de novo em instantes' });

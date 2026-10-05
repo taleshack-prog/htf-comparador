@@ -143,10 +143,14 @@ function syncRef() {
 }
 
 // ---------- carga ----------
+// Versão dos dados (hora da última coleta): entra na URL das consultas para que uma
+// coleta nova nunca seja escondida por resposta antiga guardada no cache da CDN.
+const versaoDados = () => String(Date.parse(state.catalog?.atualizado_em || '') || 0).slice(0, 10);
 async function load() {
   writeUrl();
   const p = new URLSearchParams({ ind: state.ind, gov: [...state.gov].join(',') });
   if (state.ref) p.set('ref', state.ref);
+  p.set('v', versaoDados());
   aviso('');
   try {
     const r = await fetch(`/api/v1/compare?${p}`);
@@ -174,6 +178,7 @@ async function loadRanking() {
   const pesos = Object.entries(state.rpesos).map(([k, v]) => `${k}:${v}`).join(',');
   const p = new URLSearchParams({ modo: state.rmodo });
   if (pesos) p.set('pesos', pesos);
+  p.set('v', versaoDados());
   try {
     const r = await fetch(`/api/v1/ranking?${p}`);
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `erro ${r.status}`);
