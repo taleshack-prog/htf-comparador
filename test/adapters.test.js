@@ -194,3 +194,15 @@ test('NFSP das estatais: sinal invertido (positivo = superávit)', async () => {
   const obs = bcb.normalize(raw, { now: NOW });
   assert.deepEqual(obs.map((o) => [o.indicator, o.ano, o.valor]), [['estatais-primario-bcb', 2019, 0.1]]);
 });
+
+test('Banco Mundial social: adaptador próprio, séries em paralelo', async () => {
+  const { worldbankSocial, SOCIAL_SERIES } = await import('../adapters/worldbank.js');
+  const { ADAPTER_SLUGS } = await import('../adapters/index.js');
+  assert.ok(ADAPTER_SLUGS.includes('worldbank-social'));
+  const { fakeFetch } = await import('./helpers.js');
+  const impl = fakeFetch([['indicator/', wbPayload([{ countryiso3code: 'BRA', date: '2023', value: 3.8 }])]]);
+  const raw = await worldbankSocial.fetch({ fetchImpl: impl, now: NOW, log: () => {} });
+  assert.equal(impl.calls.length, SOCIAL_SERIES.length);
+  const out = worldbankSocial.normalize(raw, { catalog: { byIso3: new Map([['BRA', 'brasil']]) }, now: NOW });
+  assert.deepEqual(out.map((o) => o.indicator), ['pib-per-capita-wb', 'pobreza-wb', 'gini-wb', 'mortalidade-infantil-wb']);
+});

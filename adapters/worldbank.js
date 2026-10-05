@@ -14,11 +14,22 @@ export const SERIES = [
   { indicator: 'receita-tributaria-wb', codigo: 'GC.TAX.TOTL.GD.ZS' },
   { indicator: 'termos-troca-wb',       codigo: 'TT.PRI.MRCH.XD.WD' },
   { indicator: 'investimento-wb',       codigo: 'NE.GDI.FTOT.ZS' },
-  { indicator: 'pib-per-capita-wb',     codigo: 'NY.GDP.PCAP.KD.ZG' },
-  { indicator: 'pobreza-wb',            codigo: 'SI.POV.DDAY' },
-  { indicator: 'gini-wb',               codigo: 'SI.POV.GINI' },
+];
+
+// Renda por pessoa e séries sociais: adaptador separado, para que a lentidão de uma série
+// (a API do Banco Mundial oscila) não derrube as séries econômicas.
+export const SOCIAL_SERIES = [
+  { indicator: 'pib-per-capita-wb',       codigo: 'NY.GDP.PCAP.KD.ZG' },
+  { indicator: 'pobreza-wb',              codigo: 'SI.POV.DDAY' },
+  { indicator: 'gini-wb',                 codigo: 'SI.POV.GINI' },
   { indicator: 'mortalidade-infantil-wb', codigo: 'SP.DYN.IMRT.IN' },
 ];
+
+// Busca as séries em paralelo (cada uma com suas tentativas): o tempo total vira o da mais lenta.
+async function buscarSeries(series, { fetchImpl, now, log, timeoutMs = 45000 }) {
+  const corpos = await Promise.all(series.map((s) => fetchJson(wbUrl(s.codigo, now.getUTCFullYear()), { fetchImpl, log, timeoutMs })));
+  return Object.fromEntries(series.map((s, i) => [s.codigo, corpos[i]]));
+}
 
 export const wbUrl = (codigo, toYear, { paises = COUNTRIES, fonte } = {}) =>
   `https://api.worldbank.org/v2/country/${paises.join(';')}/indicator/${codigo}` +
@@ -48,9 +59,7 @@ export default {
   slug: 'worldbank',
   version: 'worldbank@2',
   async fetch({ fetchImpl, now, log }) {
-    const out = {};
-    for (const s of SERIES) out[s.codigo] = await fetchJson(wbUrl(s.codigo, now.getUTCFullYear()), { fetchImpl, log });
-    return out;
+    return buscarSeries(SERIES, { fetchImpl, now, log });
   },
   normalize(raw, { catalog, now }) {
     return SERIES.flatMap((s) =>
@@ -99,5 +108,19 @@ export const worldbankWgi = {
       }
       return [...notas, ...margens];
     });
+  },
+};
+
+export const worldbankSocial = {
+  slug: 'worldbank-social',
+  version: 'worldbank-social@1',
+  async fetch({ fetchImpl, now, log }) {
+    return buscarSeries(SOCIAL_SERIES, { fetchImpl, now, log });
+  },
+  normalize(raw, { catalog, now }) {
+    return SOCIAL_SERIES.flatMap((s) =>
+      parseWb(raw[s.codigo], catalog.byIso3, now).map((o) => ({
+        ...o, indicator: s.indicator, url: wbPublicUrl(s.codigo),
+      })));
   },
 };
