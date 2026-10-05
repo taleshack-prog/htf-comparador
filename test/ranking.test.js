@@ -1,7 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
-import { normalize, normalizeEscala, historicoAnual, parsePesos, ranking, MODOS } from '../lib/ranking.js';
+import { sensibilidade, normalize, normalizeEscala, historicoAnual, parsePesos, ranking, MODOS } from '../lib/ranking.js';
 import { parseImf } from '../adapters/imf.js';
 import { migrate, seed } from '../lib/migrations.js';
 import { compare } from '../lib/compare.js';
@@ -23,6 +23,17 @@ test('escala histórica: diferença pequena entre governos vira diferença peque
   assert.deepEqual(historicoAnual(br, null, 'media'), [10, 14]);
   assert.deepEqual(historicoAnual(br, null, 'variacao'), [4]);
   assert.ok(!MODOS.oficial.componentes.some((c) => c.slug === 'juro-real-bcb'));
+});
+
+test('sensibilidade: notas próximas viram empate técnico; distância grande, não', () => {
+  const it = (a, b) => [{ slug: 'x', bloco: 'b1', nota: a }, { slug: 'y', bloco: 'b2', nota: b }];
+  const g = [{ slug: 'A', nota: 60, itens: it(70, 50) }, { slug: 'B', nota: 59.5, itens: it(50, 69) }, { slug: 'C', nota: 20, itens: it(20, 20) }];
+  const r = sensibilidade(g, ['b1', 'b2'], { x: 1, y: 1 });
+  assert.deepEqual(r.empates, [['A', 'B']]);
+  assert.deepEqual(r.porGov.C.faixa, [3, 3]);
+  assert.equal(r.porGov.C.primeiro, 0);
+  // reproduzível: mesma semente, mesmo resultado
+  assert.deepEqual(sensibilidade(g, ['b1', 'b2'], { x: 1, y: 1 }).porGov.A, r.porGov.A);
 });
 
 test('pesos: padrão 1, aceita 0–10, ignora indicador desconhecido', () => {

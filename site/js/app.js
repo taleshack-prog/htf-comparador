@@ -228,7 +228,7 @@ function renderPesos(d) {
 function renderRanking() {
   const d = state.rdata;
   $('#ranking-descricao').textContent = d.descricao;
-  $('#ranking-formula').textContent = d.formula;
+  $('#ranking-formula').textContent = d.formula + (d.sensibilidade ? ` Sensibilidade: ${d.sensibilidade.metodo}` : '');
   $('#ranking-avisos').innerHTML = d.avisos.map((a) => `<li>${a}</li>`).join('');
   renderPesos(d);
   const box = $('#grafico-ranking');
@@ -266,10 +266,14 @@ function renderRanking() {
         fill: 'var(--brasil)', 'fill-opacity': g.peso_coberto < 100 ? 0.6 : 1 }, grp);
       const vt = svg('text', { x: X(g.nota) + 6, y: barY + 15, 'font-size': 14, 'font-weight': 600 }, grp);
       vt.textContent = nf(1).format(g.nota);
-      if (g.peso_coberto < 100 || g.parcial) {
+      const sens = g.sensibilidade;
+      const faixa = sens && sens.faixa[0] !== sens.faixa[1] ? `${sens.faixa[0]}º a ${sens.faixa[1]}º conforme os pesos` : '';
+      const extras = [g.empate ? 'empate técnico' : '', faixa, g.peso_coberto < 100 ? `${nf(0).format(g.peso_coberto)}% dos pesos` : '', g.parcial ? 'parcial' : ''].filter(Boolean);
+      if (extras.length) {
         const et = svg('text', { x: X(g.nota) + 6, y: barY + 31, 'font-size': 11, class: 'muted' }, grp);
-        et.textContent = [g.peso_coberto < 100 ? `${nf(0).format(g.peso_coberto)}% dos pesos` : '', g.parcial ? 'parcial' : ''].filter(Boolean).join(' · ');
+        et.textContent = extras.join(' · ');
       }
+      if (g.empate) svg('rect', { x: (narrow ? x0 - 28 : labelW) , y: barY - 2, width: 4, height: 24, rx: 2, fill: 'var(--latao)' }, grp);
     }
     const linhas = d.componentes.map((c) => {
       const it = g.itens.find((i) => i.slug === c.slug);
@@ -277,7 +281,8 @@ function renderRanking() {
     }).join('<br>');
     const blocosTxt = (d.blocos || []).length > 1
       ? d.blocos.map((b) => `${b.nome}: ${g.blocos?.[b.slug] == null ? '—' : nf(1).format(g.blocos[b.slug])}`).join(' · ') + '<br>' : '';
-    const html = `<strong>${nome}</strong> (${g.ano_inicio}–${g.ano_fim})<br>Nota geral: ${g.nota === null ? '—' : nf(1).format(g.nota)}<br>${blocosTxt}${linhas}`;
+    const sensTxt = g.sensibilidade ? `Em ${d.sensibilidade.cenarios} cenários de pesos: 1º lugar em ${nf(1).format(g.sensibilidade.primeiro)}%; posição entre ${g.sensibilidade.faixa[0]}º e ${g.sensibilidade.faixa[1]}º.${g.empate ? ' Empate técnico.' : ''}<br>` : '';
+    const html = `<strong>${nome}</strong> (${g.ano_inicio}–${g.ano_fim})<br>Nota geral: ${g.nota === null ? '—' : nf(1).format(g.nota)}<br>${sensTxt}${blocosTxt}${linhas}`;
     grp.addEventListener('mousemove', (e) => showTip(html, e.clientX, e.clientY));
     grp.addEventListener('mouseleave', hideTip);
     grp.addEventListener('focus', () => { const bb = grp.getBoundingClientRect(); showTip(html, bb.left + 40, bb.top); });
@@ -289,11 +294,12 @@ function renderRanking() {
   const cabBlocos = multi ? d.blocos.map((b) => `<th class="num">${b.nome}</th>`).join('') : '';
   const celBlocos = (g) => (multi ? d.blocos.map((b) => `<td class="num">${g.blocos?.[b.slug] == null ? '—' : nf(1).format(g.blocos[b.slug])}</td>`).join('') : '');
   const cab = d.componentes.map((c) => `<th class="num">${c.nome}${c.peso === 0 ? ' (fora)' : c.peso !== 1 ? ` (peso ${c.peso})` : ''}</th>`).join('');
-  const lin = d.governos.map((g) => `<tr><td>${g.posicao ? `${g.posicao}º` : '—'}</td><td>${nomeCurto(g.nome)}</td>
+  const faixaCel = (g) => (g.sensibilidade ? `${g.sensibilidade.faixa[0]}º–${g.sensibilidade.faixa[1]}º${g.empate ? '<br><span class="muted">empate</span>' : ''}` : '—');
+  const lin = d.governos.map((g) => `<tr><td>${g.posicao ? `${g.posicao}º` : '—'}</td><td>${nomeCurto(g.nome)}</td><td class="num">${faixaCel(g)}</td>
     <td class="num"><strong>${g.nota === null ? '—' : nf(1).format(g.nota)}</strong></td>${celBlocos(g)}
     ${d.componentes.map((c) => { const it = g.itens.find((i) => i.slug === c.slug);
       return `<td class="num">${it.nota === null ? '—' : `${nf(0).format(it.nota)}<br><span class="muted">${fmtValor(it.valor, c.unidade, { sinal: c.unidade.startsWith('p.p.') })}</span>`}</td>`; }).join('')}</tr>`).join('');
-  $('#tabela-ranking').innerHTML = `<table><thead><tr><th>#</th><th>Governo</th><th class="num">Nota</th>${cabBlocos}${cab}</tr></thead><tbody>${lin}</tbody></table>`;
+  $('#tabela-ranking').innerHTML = `<table><thead><tr><th>#</th><th>Governo</th><th class="num">Faixa nos cenários</th><th class="num">Nota</th>${cabBlocos}${cab}</tr></thead><tbody>${lin}</tbody></table>`;
 }
 
 // ---------- gráfico de barras com o prumo ----------
