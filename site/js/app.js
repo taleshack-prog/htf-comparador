@@ -396,6 +396,10 @@ function renderBars() {
       vt.textContent = fmtValor(r.valor, un, { sinal: variacao });
       const extras = [];
       if (posicao.has(r.slug)) extras.push(`${posicao.get(r.slug)}º de ${posicao.total}`);
+      if (variacao && r.anos?.length) {
+        const decorridos = r.anos[r.anos.length - 1] - (r.ano_inicio - 1);
+        if (decorridos > 0) extras.push(`${fmtValor(r.valor / decorridos, un, { sinal: true })} por ano`);
+      }
       if (r.qualidade === 'parcial') extras.push('parcial');
       if (r.cobertura[0] < r.cobertura[1]) extras.push(`${r.cobertura[0]} de ${r.cobertura[1]} anos`);
       if (extras.length) {

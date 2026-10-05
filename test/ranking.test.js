@@ -21,7 +21,9 @@ test('escala histórica: diferença pequena entre governos vira diferença peque
   assert.deepEqual(normalizeEscala([3, null], 'menor', [0, 1]), [0, null]);
   const br = new Map([[2000, { valor: 10 }], [2004, { valor: 14 }], [2005, { valor: 20, qualidade: 'projecao' }]].map(([a, o]) => [a, { qualidade: 'oficial', ...o }]));
   assert.deepEqual(historicoAnual(br, null, 'media'), [10, 14]);
-  assert.deepEqual(historicoAnual(br, null, 'variacao'), [4]);
+  assert.deepEqual(historicoAnual(br, null, 'variacao'), []);   // 2000→2004 não são anos seguidos
+  const br2 = new Map([[2000, 10], [2001, 12], [2002, 11]].map(([a, v]) => [a, { valor: v, qualidade: 'oficial' }]));
+  assert.deepEqual(historicoAnual(br2, null, 'variacao'), [2, -1]);
   assert.ok(!MODOS.oficial.componentes.some((c) => c.slug === 'juro-real-bcb'));
 });
 
@@ -156,4 +158,19 @@ test('cobertura mínima: indicador com menos da metade dos anos não entra na no
   assert.match(prim.motivo, /50%/);
   assert.match(r.avisos.join(' '), /menos da metade dos anos/);
   assert.ok(MODOS.oficial.componentes.some((c) => c.slug === 'desemprego-oit-wb'));
+});
+
+test('variação da dívida vira ritmo anual: mandato curto não leva vantagem', opts, async () => {
+  const put = (a, v) => pool.query(`
+    INSERT INTO fact_observation (entity_id, indicator_id, periodo_ano, valor, qualidade, fonte_id, url_fonte, adaptador_versao)
+    SELECT c.id, i.id, $1, $2, 'oficial', i.fonte_id, 'https://exemplo.test', 'teste'
+    FROM dim_country c, dim_indicator i WHERE c.slug = 'brasil' AND i.slug = 'divida-bruta-fmi'
+    ON CONFLICT DO NOTHING`, [a, v]);
+  await put(2016, 70); await put(2017, 74); await put(2018, 78);   // Temer: +8 em 2 anos
+  await put(2010, 60); for (let a = 2011; a <= 2016; a++) await put(a, 60 + (a - 2010) * 1.5);  // Dilma: +9 em 6 anos (até 2016 = 69)
+  const r = await ranking(pool, { modo: 'oficial' });
+  const it = (slug) => r.governos.find((g) => g.slug === slug).itens.find((i) => i.slug === 'divida-bruta-fmi');
+  assert.equal(it('temer').valor, 4);      // 8 ÷ 2
+  assert.equal(it('temer').total, 8);
+  assert.equal(r.componentes.find((c) => c.slug === 'divida-bruta-fmi').unidade, 'p.p. do PIB ao ano');
 });
