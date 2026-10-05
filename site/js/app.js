@@ -263,12 +263,12 @@ function renderRanking() {
       nt.textContent = 'sem dados suficientes';
     } else {
       svg('rect', { class: 'barra', x: x0, y: barY, width: Math.max(2, X(g.nota) - x0), height: 20, rx: 4,
-        fill: 'var(--brasil)', 'fill-opacity': g.peso_coberto < 100 ? 0.6 : 1 }, grp);
+        fill: 'var(--brasil)', 'fill-opacity': g.insuficiente ? 0.3 : g.peso_coberto < 100 ? 0.6 : 1 }, grp);
       const vt = svg('text', { x: X(g.nota) + 6, y: barY + 15, 'font-size': 14, 'font-weight': 600 }, grp);
       vt.textContent = nf(1).format(g.nota);
       const sens = g.sensibilidade;
       const faixa = sens && sens.faixa[0] !== sens.faixa[1] ? `${sens.faixa[0]}º a ${sens.faixa[1]}º conforme os pesos` : '';
-      const extras = [g.empate ? 'empate técnico' : '', faixa, g.peso_coberto < 100 ? `${nf(0).format(g.peso_coberto)}% dos pesos` : '', g.parcial ? 'parcial' : ''].filter(Boolean);
+      const extras = [g.insuficiente ? 'dados insuficientes neste modo: sem posição' : '', g.empate ? 'empate técnico' : '', faixa, g.peso_coberto < 100 ? `${nf(0).format(g.peso_coberto)}% dos pesos` : '', g.parcial ? 'parcial' : ''].filter(Boolean);
       if (extras.length) {
         const et = svg('text', { x: X(g.nota) + 6, y: barY + 31, 'font-size': 11, class: 'muted' }, grp);
         et.textContent = extras.join(' · ');

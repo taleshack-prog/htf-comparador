@@ -87,12 +87,18 @@ before(async () => {
 after(async () => { if (pool) await pool.end(); });
 
 test('ranking oficial: média ponderada só dos indicadores com dado e aviso de cobertura', opts, async () => {
-  const r = await ranking(pool, { modo: 'oficial' });
+  // com todos os indicadores, a base de teste cobre menos da metade dos pesos: sem posição
+  const todos = await ranking(pool, { modo: 'oficial' });
+  const l0 = todos.governos.find((g) => g.slug === 'lula');
+  assert.equal(l0.insuficiente, true);
+  assert.equal(l0.posicao, undefined);
+  assert.match(todos.avisos.join(' '), /Sem posição por ter dado em menos da metade/);
+  // só com os indicadores de economia que têm dado na base de teste
+  const r = await ranking(pool, { modo: 'oficial', pesos: 'desemprego-oit-wb:0,investimento-wb:1' });
   const lula = r.governos.find((g) => g.slug === 'lula');
   const dilma = r.governos.find((g) => g.slug === 'dilma');
-  assert.equal(lula.posicao, 1);                  // maior PIB e inflação baixa
-  assert.ok(dilma.nota < lula.nota);
-  assert.ok(lula.peso_coberto < 100);             // sem desemprego/dívida no teste
+  assert.ok(dilma.nota < lula.nota);              // maior PIB e inflação baixa
+  assert.ok(lula.peso_coberto < 100);
   assert.match(r.avisos.join(' '), /Sem dado para todos/);
   assert.match(r.formula, /Σ\(peso × nota\)/);
 });
@@ -164,10 +170,13 @@ test('trajetória: média do mandato menos o ano anterior à posse; escala robus
   const { historicoTrajetoria, normalizeRobusta, MODOS: M } = await import('../lib/ranking.js');
   const br = new Map([[2000, 10], [2001, 8], [2002, 8], [2003, 8], [2004, 8]].map(([a, v]) => [a, { valor: v, qualidade: 'oficial' }]));
   assert.deepEqual(historicoTrajetoria(br), [-2, 0]);   // base 2000: média 2001–2004 (8) − 10; base 2001: 2002–2004 − 8
+  const pre = new Map([[1994, 900], [1995, 20], [1996, 10], [1997, 8], [1998, 8], [1999, 8]].map(([a, v]) => [a, { valor: v, qualidade: 'oficial' }]));
+  assert.ok(historicoTrajetoria(pre).every((x) => x > -20));   // anos-base pré-Real ficam fora da escala
   const h = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -900];   // choque extremo não achata a escala
   const n = normalizeRobusta([-900, 0, 4], 'menor', h);
   assert.equal(n[0], 100);
   assert.ok(n[1] > 40 && n[1] < 60);
   assert.ok(!M.oficial.componentes.some((c) => ['divida-bruta-fmi', 'juros-nominais-tesouro'].includes(c.slug)));
   assert.ok(M.trajetoria.trajetoria);
+  assert.ok(!M.trajetoria.componentes.some((c) => c.slug.startsWith('pib')));
 });
