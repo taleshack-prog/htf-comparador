@@ -187,3 +187,49 @@ test('ano civil em curso fica fora da nota (ano incompleto não é comparável)'
   assert.deepEqual([...semAnoCorrente(serie, NOW).keys()], [2024, 2025]);
   assert.equal(semAnoCorrente(null, NOW), null);
 });
+
+test('erro de medida: regra da escala do instrumento e conversão da margem', async () => {
+  const { usaEscalaInstrumento, normalizeInstrumento, normalizeInstrumentoVariacao, LARGURAS_MIN } = await import('../lib/ranking.js');
+  assert.equal(LARGURAS_MIN, 4);
+  assert.equal(usaEscalaInstrumento([49, 59], 5.6, [0, 100]), true);     // 10 pontos < 4 × 5,6
+  assert.equal(usaEscalaInstrumento([20, 80], 5.6, [0, 100]), false);    // 60 pontos: variação real
+  assert.equal(usaEscalaInstrumento([49, 59], null, [0, 100]), false);   // sem margem publicada
+  assert.deepEqual(normalizeInstrumento([48.9, 57.6, null], 'maior', [0, 100]), [48.9, 57.6, null]);
+  assert.deepEqual(normalizeInstrumentoVariacao([-4, 3], 'maior', [0, 100]), [46, 53]);
+});
+
+test('WGI com variação dentro do erro: escala do índice, margem no item e na simulação', opts, async () => {
+  const put = (i, a, v) => pool.query(`
+    INSERT INTO fact_observation (entity_id, indicator_id, periodo_ano, valor, qualidade, fonte_id, url_fonte, adaptador_versao)
+    SELECT c.id, i.id, $2, $3, 'oficial', i.fonte_id, 'https://exemplo.test', 'teste'
+    FROM dim_country c, dim_indicator i WHERE c.slug = 'brasil' AND i.slug = $1
+    ON CONFLICT DO NOTHING`, [i, a, v]);
+  for (let a = 1996; a <= 2025; a++) {
+    await put('qualidade-regulatoria-wb', a, a <= 2010 ? 58 : a <= 2018 ? 54 : 49);   // amplitude 9
+    await put('qualidade-regulatoria-wb-margem', a, 5.6);
+    await put('efetividade-governo-wb', a, a <= 2010 ? 80 : 20);                       // amplitude 60
+    await put('efetividade-governo-wb-margem', a, 5);
+  }
+  const r = await ranking(pool, { modo: 'oficial' });
+  const rq = r.componentes.find((c) => c.slug === 'qualidade-regulatoria-wb');
+  const ge = r.componentes.find((c) => c.slug === 'efetividade-governo-wb');
+  assert.equal(rq.escala, 'instrumento');
+  assert.equal(ge.escala, undefined);
+  const lula3 = r.governos.find((g) => g.slug === 'lula-3');
+  const it = lula3.itens.find((i) => i.slug === 'qualidade-regulatoria-wb');
+  assert.equal(it.nota, 49);                          // 1 ponto do índice = 1 ponto de nota
+  assert.equal(it.margem, 5.6);
+  assert.equal(it.erro, Math.round((5.6 / 1.645) * 100) / 100);
+  const itGe = lula3.itens.find((i) => i.slug === 'efetividade-governo-wb');
+  assert.equal(itGe.nota, 0);                         // variação real: escala histórica
+  assert.equal(itGe.erro, Math.round((5 / 1.645) * (100 / 60) * 100) / 100);
+  // simulação: só com os indicadores que têm dado na base de teste (os demais com peso 0)
+  const usados = ['pib-anual', 'ipca-anual', 'qualidade-regulatoria-wb', 'efetividade-governo-wb'];
+  const pesos = MODOS.oficial.componentes.map((c) => `${c.slug}:${usados.includes(c.slug) ? 1 : 0}`).join(',');
+  const r2 = await ranking(pool, { modo: 'oficial', pesos });
+  assert.equal(r2.sensibilidade.erro_medida, true);
+  assert.match(r2.sensibilidade.metodo, /erro de medida/);
+  assert.match(r.avisos.join(' '), /escala do próprio índice/);
+  const { getCatalog } = await import('../lib/compare.js');
+  assert.ok(!(await getCatalog(pool)).indicadores.some((i) => i.slug.endsWith('-margem')));   // série auxiliar
+});

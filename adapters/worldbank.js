@@ -60,27 +60,40 @@ export default {
 // Adaptador separado: se a base de governança falhar, as séries econômicas seguem.
 // Desde a revisão de 2025 o WGI publica uma nota de 0 a 100 (GOV_WGI_CC.SC); o antigo
 // percentil CC.PER.RNK foi arquivado e a API responde "indicator was not found".
+// Margem de erro: o WGI publica o limite inferior do intervalo de 90% (SC_LB); a margem é
+// nota − limite inferior (o intervalo é simétrico). Só para o Brasil, que é o que o ranking usa.
 export const WGI_SERIES = [
-  { indicator: 'controle-corrupcao-wb', codigo: 'GOV_WGI_CC.SC' },
-  { indicator: 'qualidade-regulatoria-wb', codigo: 'GOV_WGI_RQ.SC' },
-  { indicator: 'efetividade-governo-wb', codigo: 'GOV_WGI_GE.SC' },
+  { indicator: 'controle-corrupcao-wb', codigo: 'GOV_WGI_CC.SC', margem: 'controle-corrupcao-wb-margem' },
+  { indicator: 'qualidade-regulatoria-wb', codigo: 'GOV_WGI_RQ.SC', margem: 'qualidade-regulatoria-wb-margem' },
+  { indicator: 'efetividade-governo-wb', codigo: 'GOV_WGI_GE.SC', margem: 'efetividade-governo-wb-margem' },
 ];
+const lb = (codigo) => `${codigo}_LB`;
 // A página pública usa sublinhado no lugar do ponto: GOV_WGI_CC_SC.
 export const wgiPublicUrl = (codigo) => `https://data.worldbank.org/indicator/${codigo.replace(/\./g, '_')}`;
 export const worldbankWgi = {
   slug: 'worldbank-wgi',
-  version: 'worldbank-wgi@1',
+  version: 'worldbank-wgi@2',
   async fetch({ fetchImpl, now, log }) {
     const out = {};
     for (const s of WGI_SERIES) {
       out[s.codigo] = await fetchJson(wbUrl(s.codigo, now.getUTCFullYear(), { paises: ['BRA', 'SGP', 'SWE'], fonte: 3 }), { fetchImpl, log, timeoutMs: 60000 });
+      out[lb(s.codigo)] = await fetchJson(wbUrl(lb(s.codigo), now.getUTCFullYear(), { paises: ['BRA'], fonte: 3 }), { fetchImpl, log, timeoutMs: 60000 });
     }
     return out;
   },
   normalize(raw, { catalog, now }) {
-    return WGI_SERIES.flatMap((s) =>
-      parseWb(raw[s.codigo], catalog.byIso3, now).map((o) => ({
+    return WGI_SERIES.flatMap((s) => {
+      const notas = parseWb(raw[s.codigo], catalog.byIso3, now).map((o) => ({
         ...o, indicator: s.indicator, url: wgiPublicUrl(s.codigo),
-      })));
+      }));
+      const notaBr = new Map(notas.filter((o) => o.entity === 'brasil').map((o) => [o.ano, o.valor]));
+      const margens = parseWb(raw[lb(s.codigo)], catalog.byIso3, now)
+        .filter((o) => o.entity === 'brasil' && notaBr.has(o.ano))
+        .map((o) => ({ ...o, indicator: s.margem, valor: round4(notaBr.get(o.ano) - o.valor), url: wgiPublicUrl(lb(s.codigo)) }));
+      for (const m of margens) {
+        if (!(m.valor > 0 && m.valor < 30)) throw new Error(`WGI: margem de erro implausível em ${s.margem} ${m.ano}: ${m.valor}`);
+      }
+      return [...notas, ...margens];
+    });
   },
 };

@@ -179,3 +179,25 @@ ON CONFLICT (slug) DO UPDATE SET
   direcao_otima = EXCLUDED.direcao_otima, periodicidade = EXCLUDED.periodicidade,
   agregacao_janela = EXCLUDED.agregacao_janela, ressalva_metodologica = EXCLUDED.ressalva_metodologica,
   url_fonte = EXCLUDED.url_fonte, adaptador = EXCLUDED.adaptador, codigo_externo = EXCLUDED.codigo_externo;
+
+-- Margem de erro do WGI (metade do intervalo de confiança de 90% publicado pelo Banco Mundial:
+-- nota − limite inferior, GOV_WGI_xx.SC_LB). Série auxiliar: usada no ranking para não tratar
+-- como diferença real o que está dentro do erro de medida.
+INSERT INTO dim_indicator (slug, nome_pt, unidade, fonte_id, direcao_otima, periodicidade, agregacao_janela,
+                           ressalva_metodologica, url_fonte, adaptador, codigo_externo, auxiliar)
+SELECT v.slug, v.nome, 'pontos', s.id, 'neutra', 'anual', 'media', v.ress, v.url, 'worldbank-wgi', v.cod, TRUE
+FROM (VALUES
+  ('controle-corrupcao-wb-margem', 'Margem de erro (90%): controle da corrupção',
+     'Metade do intervalo de confiança de 90% do WGI (nota menos o limite inferior publicado).',
+     'https://data.worldbank.org/indicator/GOV_WGI_CC_SC_LB', 'GOV_WGI_CC.SC_LB'),
+  ('qualidade-regulatoria-wb-margem', 'Margem de erro (90%): qualidade regulatória',
+     'Metade do intervalo de confiança de 90% do WGI (nota menos o limite inferior publicado).',
+     'https://data.worldbank.org/indicator/GOV_WGI_RQ_SC_LB', 'GOV_WGI_RQ.SC_LB'),
+  ('efetividade-governo-wb-margem', 'Margem de erro (90%): efetividade do governo',
+     'Metade do intervalo de confiança de 90% do WGI (nota menos o limite inferior publicado).',
+     'https://data.worldbank.org/indicator/GOV_WGI_GE_SC_LB', 'GOV_WGI_GE.SC_LB')
+) AS v(slug, nome, ress, url, cod)
+JOIN dim_source s ON s.slug = 'worldbank'
+ON CONFLICT (slug) DO UPDATE SET
+  nome_pt = EXCLUDED.nome_pt, ressalva_metodologica = EXCLUDED.ressalva_metodologica, url_fonte = EXCLUDED.url_fonte,
+  codigo_externo = EXCLUDED.codigo_externo, auxiliar = TRUE, direcao_otima = 'neutra';

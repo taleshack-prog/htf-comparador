@@ -141,17 +141,28 @@ test('WGI: pede a base 3 com o código atual e grava o link público com sublinh
   const { worldbankWgi, wbUrl } = await import('../adapters/worldbank.js');
   assert.match(wbUrl('GOV_WGI_CC.SC', 2026, { paises: ['BRA'], fonte: 3 }), /country\/BRA\/indicator\/GOV_WGI_CC\.SC\?.*&source=3$/);
   const { fakeFetch } = await import('./helpers.js');
-  const impl = fakeFetch([['GOV_WGI_', wbPayload([
-    { countryiso3code: 'BRA', date: '2023', value: 38.4 },
-    { countryiso3code: 'SWE', date: '2023', value: 91.2 },
-  ])]]);
+  const impl = fakeFetch([
+    ['_LB?', wbPayload([{ countryiso3code: 'BRA', date: '2023', value: 32.8 }])],
+    ['GOV_WGI_', wbPayload([
+      { countryiso3code: 'BRA', date: '2023', value: 38.4 },
+      { countryiso3code: 'SWE', date: '2023', value: 91.2 },
+    ])],
+  ]);
   const raw = await worldbankWgi.fetch({ fetchImpl: impl, now: NOW, log: () => {} });
   assert.match(impl.calls[0], /BRA;SGP;SWE/);
+  assert.match(impl.calls[1], /country\/BRA\/indicator\/GOV_WGI_CC\.SC_LB\?/);
   const out = worldbankWgi.normalize(raw, { catalog: { byIso3: new Map([['BRA', 'brasil'], ['SWE', 'suecia']]) }, now: NOW });
   assert.deepEqual(out.filter((o) => o.indicator === 'controle-corrupcao-wb').map((o) => [o.entity, o.ano, o.valor]), [
     ['brasil', 2023, 38.4], ['suecia', 2023, 91.2]]);
-  assert.deepEqual([...new Set(out.map((o) => o.indicator))], ['controle-corrupcao-wb', 'qualidade-regulatoria-wb', 'efetividade-governo-wb']);
+  // margem de erro = nota − limite inferior do intervalo de 90%, só para o Brasil
+  assert.deepEqual(out.filter((o) => o.indicator === 'controle-corrupcao-wb-margem').map((o) => [o.entity, o.ano, o.valor]), [
+    ['brasil', 2023, 5.6]]);
+  assert.deepEqual([...new Set(out.map((o) => o.indicator))], ['controle-corrupcao-wb', 'controle-corrupcao-wb-margem',
+    'qualidade-regulatoria-wb', 'qualidade-regulatoria-wb-margem', 'efetividade-governo-wb', 'efetividade-governo-wb-margem']);
   assert.equal(out[0].url, 'https://data.worldbank.org/indicator/GOV_WGI_CC_SC');
+  // margem implausível (limite inferior acima da nota) derruba o lote
+  const ruim = { ...raw, 'GOV_WGI_CC.SC_LB': wbPayload([{ countryiso3code: 'BRA', date: '2023', value: 40 }]) };
+  assert.throws(() => worldbankWgi.normalize(ruim, { catalog: { byIso3: new Map([['BRA', 'brasil']]) }, now: NOW }), /margem de erro implausível/);
 });
 
 test('SGS: blocos antes do início da série (404 ou objeto de erro) são pulados', async () => {

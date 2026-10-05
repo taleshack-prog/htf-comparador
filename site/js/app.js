@@ -267,7 +267,7 @@ function renderRanking() {
       const vt = svg('text', { x: X(g.nota) + 6, y: barY + 15, 'font-size': 14, 'font-weight': 600 }, grp);
       vt.textContent = nf(1).format(g.nota);
       const sens = g.sensibilidade;
-      const faixa = sens && sens.faixa[0] !== sens.faixa[1] ? `${sens.faixa[0]}º a ${sens.faixa[1]}º conforme os pesos` : '';
+      const faixa = sens && sens.faixa[0] !== sens.faixa[1] ? `${sens.faixa[0]}º a ${sens.faixa[1]}º nos cenários` : '';
       const extras = [g.insuficiente ? 'dados insuficientes neste modo: sem posição' : '', g.empate ? 'empate técnico' : '', faixa, g.peso_coberto < 100 ? `${nf(0).format(g.peso_coberto)}% dos pesos` : '', g.parcial ? 'parcial' : ''].filter(Boolean);
       if (extras.length) {
         const et = svg('text', { x: X(g.nota) + 6, y: barY + 31, 'font-size': 11, class: 'muted' }, grp);
@@ -277,12 +277,13 @@ function renderRanking() {
     }
     const linhas = d.componentes.map((c) => {
       const it = g.itens.find((i) => i.slug === c.slug);
-      const det = it.herdado !== undefined ? `; herdou ${nf(1).format(it.herdado)}, média ${nf(1).format(it.media)}` : '';
+      const det = (it.margem ? ` ± ${nf(1).format(it.margem)} de margem de erro` : '')
+        + (it.herdado !== undefined ? `; herdou ${nf(1).format(it.herdado)}, média ${nf(1).format(it.media)}` : '');
       return `${c.nome}: ${it.nota === null ? 'sem dado' : `${nf(0).format(it.nota)} (${fmtValor(it.valor, c.unidade, { sinal: c.unidade.startsWith('p.p.') || it.herdado !== undefined })}${det})`}${c.peso === 0 ? ' · fora' : ''}`;
     }).join('<br>');
     const blocosTxt = (d.blocos || []).length > 1
       ? d.blocos.map((b) => `${b.nome}: ${g.blocos?.[b.slug] == null ? '—' : nf(1).format(g.blocos[b.slug])}`).join(' · ') + '<br>' : '';
-    const sensTxt = g.sensibilidade ? `Em ${d.sensibilidade.cenarios} cenários de pesos: 1º lugar em ${nf(1).format(g.sensibilidade.primeiro)}%; posição entre ${g.sensibilidade.faixa[0]}º e ${g.sensibilidade.faixa[1]}º.${g.empate ? ' Empate técnico.' : ''}<br>` : '';
+    const sensTxt = g.sensibilidade ? `Em ${d.sensibilidade.cenarios} cenários${d.sensibilidade.erro_medida ? ' (pesos e erro de medida)' : ' de pesos'}: 1º lugar em ${nf(1).format(g.sensibilidade.primeiro)}%; posição entre ${g.sensibilidade.faixa[0]}º e ${g.sensibilidade.faixa[1]}º.${g.empate ? ' Empate técnico.' : ''}<br>` : '';
     const html = `<strong>${nome}</strong> (${g.ano_inicio}–${g.ano_fim})<br>Nota geral: ${g.nota === null ? '—' : nf(1).format(g.nota)}<br>${sensTxt}${blocosTxt}${linhas}`;
     grp.addEventListener('mousemove', (e) => showTip(html, e.clientX, e.clientY));
     grp.addEventListener('mouseleave', hideTip);
