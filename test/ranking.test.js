@@ -233,3 +233,15 @@ test('WGI com variação dentro do erro: escala do índice, margem no item e na 
   const { getCatalog } = await import('../lib/compare.js');
   assert.ok(!(await getCatalog(pool)).indicadores.some((i) => i.slug.endsWith('-margem')));   // série auxiliar
 });
+
+test('defasagem de 1 ano: mede os anos do mandato deslocados, mostra o mandato real', opts, async () => {
+  const r = await ranking(pool, { modo: 'oficial', defasagem: 1 });
+  const lula = r.governos.find((g) => g.slug === 'lula');
+  assert.equal(r.defasagem, 1);
+  assert.deepEqual([lula.ano_inicio, lula.ano_fim], [2003, 2010]);
+  assert.deepEqual(lula.anos_medidos, [2004, 2011]);
+  // base de teste: PIB 2 em 1995–2002, 4 em 2003–2010, 0 em 2011–2016 → Lula medido em 2004–2011 = (7×4 + 0) / 8
+  assert.equal(lula.itens.find((i) => i.slug === 'pib-anual').valor, 3.5);
+  assert.match(r.avisos.join(' '), /Defasagem de 1 ano/);
+  assert.equal(await ranking(pool, { modo: 'oficial', defasagem: 3 }), null);
+});
