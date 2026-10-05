@@ -48,7 +48,7 @@ function writeUrl() {
   if (state.ref) p.set('ref', state.ref);
   if (state.ordem !== 'periodo') p.set('ordem', state.ordem);
   if (state.rmodo !== 'oficial') p.set('ranking', state.rmodo);
-  const pesos = Object.entries(state.rpesos).filter(([, v]) => v !== 1).map(([k, v]) => `${k}:${v}`);
+  const pesos = Object.entries(state.rpesos).map(([k, v]) => `${k}:${v}`);   // só os pesos que a pessoa mexeu
   if (pesos.length) p.set('pesos', pesos.join(','));
   history.replaceState(null, '', `${location.pathname}?${p}`);
 }
@@ -210,9 +210,9 @@ function renderPesos(d) {
     const wrap = document.createElement('label');
     wrap.className = 'peso';
     wrap.htmlFor = id;
-    const rotulo = (v) => (Number(v) === 0 ? 'fora' : `peso ${v}`);
+    const rotulo = (v) => (Number(v) === 0 ? 'fora' : `peso ${String(v).replace('.', ',')}`);
     wrap.innerHTML = `<span>${c.nome}</span><output id="${id}-o">${rotulo(c.peso)}</output>
-      <input id="${id}" type="range" min="0" max="3" step="1" value="${c.peso}" aria-describedby="${id}-o">`;
+      <input id="${id}" type="range" min="0" max="3" step="0.5" value="${c.peso}" aria-describedby="${id}-o">`;
     const input = wrap.querySelector('input');
     let t;
     input.addEventListener('input', () => {
@@ -295,7 +295,7 @@ function renderRanking() {
   const multi = (d.blocos || []).length > 1;
   const cabBlocos = multi ? d.blocos.map((b) => `<th class="num">${b.nome}</th>`).join('') : '';
   const celBlocos = (g) => (multi ? d.blocos.map((b) => `<td class="num">${g.blocos?.[b.slug] == null ? '—' : nf(1).format(g.blocos[b.slug])}</td>`).join('') : '');
-  const cab = d.componentes.map((c) => `<th class="num">${c.nome}${c.peso === 0 ? ' (fora)' : c.peso !== 1 ? ` (peso ${c.peso})` : ''}</th>`).join('');
+  const cab = d.componentes.map((c) => `<th class="num">${c.nome}${c.peso === 0 ? ' (fora)' : c.peso !== 1 ? ` (peso ${String(c.peso).replace('.', ',')})` : ''}</th>`).join('');
   const faixaCel = (g) => (g.sensibilidade ? `${g.sensibilidade.faixa[0]}º–${g.sensibilidade.faixa[1]}º${g.empate ? '<br><span class="muted">empate</span>' : ''}` : '—');
   const lin = d.governos.map((g) => `<tr><td>${g.posicao ? `${g.posicao}º` : '—'}</td><td>${nomeCurto(g.nome)}</td><td class="num">${faixaCel(g)}</td>
     <td class="num"><strong>${g.nota === null ? '—' : nf(1).format(g.nota)}</strong></td>${celBlocos(g)}

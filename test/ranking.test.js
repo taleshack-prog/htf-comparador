@@ -246,3 +246,12 @@ test('defasagem de 1 ano: mede os anos do mandato deslocados, mostra o mandato r
   assert.match(r.avisos.join(' '), /Defasagem de 1 ano/);
   assert.equal(await ranking(pool, { modo: 'oficial', defasagem: 3 }), null);
 });
+
+test('escala com cortes em 5% e 95%: um ano extremo não achata os demais', async () => {
+  const { limitesEscala } = await import('../lib/ranking.js');
+  const h = [-1, -0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, -10];   // 2020: −10
+  assert.deepEqual(limitesEscala(h), [-1, 3.5]);
+  const [a, b] = normalizeEscala([-1, 2.1, -10], 'maior', h);
+  assert.equal(a, 0); assert.equal(b, 68.9);
+  assert.deepEqual(limitesEscala([0, 0, 0, 0, 0, 4]), [0, 4]);   // série quase constante: pior e melhor
+});
