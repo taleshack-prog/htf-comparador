@@ -29,7 +29,7 @@ export function describeError(err, url) {
   return cause ? `${err.message} (${cause}) em ${host}` : `${err?.message || err} em ${host}`;
 }
 
-export async function fetchJson(url, { fetchImpl = fetch, timeoutMs = 20000, retries = 2, log = () => {} } = {}) {
+export async function fetchJson(url, { fetchImpl = fetch, timeoutMs = 20000, retries = 2, esperaMs = 500, log = () => {} } = {}) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const ctrl = new AbortController();
@@ -47,7 +47,7 @@ export async function fetchJson(url, { fetchImpl = fetch, timeoutMs = 20000, ret
     } catch (err) {
       lastErr = new Error(describeError(err, url));
       log(`  tentativa ${attempt + 1}/${retries + 1} falhou: ${lastErr.message}`);
-      if (attempt < retries) await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+      if (attempt < retries) await new Promise((r) => setTimeout(r, esperaMs * 2 ** attempt));
     } finally {
       clearTimeout(timer);
     }
