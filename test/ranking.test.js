@@ -78,6 +78,8 @@ before(async () => {
   }
   await put('brasil', 'resultado-primario-fmi', 2002, 3.2);
   await put('brasil', 'resultado-primario-fmi', 2018, -1.6);
+  await put('brasil', 'resultado-primario-tesouro', 2002, 2.1);
+  await put('brasil', 'resultado-primario-tesouro', 2018, -1.6);
   await put('brasil', 'controle-corrupcao-wb', 2018, 40);
 });
 after(async () => { if (pool) await pool.end(); });
@@ -94,7 +96,7 @@ test('ranking oficial: média ponderada só dos indicadores com dado e aviso de 
 });
 
 test('peso zero tira o indicador da conta', opts, async () => {
-  const r = await ranking(pool, { modo: 'oficial', pesos: 'ipca-anual:0,resultado-primario-fmi:0' });
+  const r = await ranking(pool, { modo: 'oficial', pesos: 'ipca-anual:0,resultado-primario-tesouro:0' });
   const fhc = r.governos.find((g) => g.slug === 'fhc');
   assert.equal(fhc.nota, r.governos.find((g) => g.slug === 'fhc').itens.find((i) => i.slug === 'pib-anual').nota);
 });
@@ -149,7 +151,7 @@ test('catálogo: WGI aparece no grupo internacional', opts, async () => {
 test('cobertura mínima: indicador com menos da metade dos anos não entra na nota', opts, async () => {
   const r = await ranking(pool, { modo: 'oficial' });
   const fhc = r.governos.find((g) => g.slug === 'fhc');
-  const prim = fhc.itens.find((i) => i.slug === 'resultado-primario-fmi');   // só 2002 de 8 anos
+  const prim = fhc.itens.find((i) => i.slug === 'resultado-primario-tesouro');   // só 2002 de 8 anos
   assert.equal(prim.nota, null);
   assert.match(prim.motivo, /50%/);
   assert.match(r.avisos.join(' '), /menos da metade dos anos/);

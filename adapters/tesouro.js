@@ -46,16 +46,27 @@ const texto = (c) => (typeof c === 'string' ? c.trim() : '');
 // rótulo comparável: espaços simples, sem nota de rodapé ("1/") nem hífen depois do número
 const rotulo = (c) => texto(c).replace(/\s+/g, ' ').replace(/\s*\d+\/$/, '').replace(/^(\d+(?:\.\d+)*\.?)\s*-\s*/, '$1 ');
 
-// Séries lidas da aba 2.1-A (% do PIB). "soma": linhas somadas; "opcional": pode faltar.
+// Séries lidas da aba 2.1-A (% do PIB). Cada série soma as "partes" (com fator ±1).
+//   alternativa: outra forma de chegar ao mesmo número, se a linha principal não existir
+//   negativo: aceita valores negativos (resultados)   opcional: a série pode faltar
+//   custo: guarda como custo positivo (inverte se a planilha registrar como negativo)
 export const RTN_SERIES = {
-  'pessoal-tesouro': [{ re: /^4\.2 Pessoal e Encargos Sociais$/i }],
-  'despesa-total-tesouro': [{ re: /^4\.? DESPESA TOTAL$/i }],
+  'pessoal-tesouro': { partes: [{ re: /^4\.2 Pessoal e Encargos Sociais$/i }] },
+  'despesa-total-tesouro': { partes: [{ re: /^4\.? DESPESA TOTAL$/i }] },
   // tributos federais: receita administrada pela Receita Federal + incentivos (negativos) + contribuição ao RGPS
-  'tributos-federais-tesouro': [
+  'tributos-federais-tesouro': { partes: [
     { re: /^1\.1 Receita Administrada pela RFB/i },
     { re: /^1\.2 Incentivos Fiscais/i, opcional: true },
     { re: /^1\.3 Arrecada[çc][ãa]o L[íi]quida para o RGPS/i },
-  ],
+  ] },
+  // resultado primário do governo central (linha 5 = receita líquida − despesa total)
+  'resultado-primario-tesouro': {
+    negativo: true,
+    partes: [{ re: /^5\.? RESULTADO PRIM[ÁA]RIO DO GOV(?:ERNO|\.)? ?CENTRAL/i }],
+    alternativa: [{ re: /^3\.? RECEITA L[ÍI]QUIDA/i }, { re: /^4\.? DESPESA TOTAL$/i, fator: -1 }],
+  },
+  // juros nominais do governo central (linha 9), como custo positivo
+  'juros-nominais-tesouro': { negativo: true, opcional: true, custo: true, partes: [{ re: /^9\.? JUROS NOMINAIS/i }] },
 };
 
 export function parseRtn(wb, now = new Date()) {
@@ -70,38 +81,51 @@ export function parseRtn(wb, now = new Date()) {
   if (!cab || !pib) throw new Error('RTN: cabeçalho ou PIB nominal não encontrados');
   const year = now.getUTCFullYear();
   const linhasDe = {};
-  for (const [ind, partes] of Object.entries(RTN_SERIES)) {
-    linhasDe[ind] = [];
+  const acha = (partes) => {
+    const out = [];
     for (const p of partes) {
       const l = L.find((x) => p.re.test(rotulo(x[0])));
-      if (!l && !p.opcional) {
-        const vistos = L.map((x) => rotulo(x[0])).filter((t) => /^\d/.test(t)).slice(0, 25).join(' | ');
-        throw new Error(`RTN: linha ${p.re} não encontrada para ${ind}. Rótulos na aba: ${vistos}`);
-      }
-      if (l) linhasDe[ind].push(l);
+      if (!l && !p.opcional) return { falta: p.re };
+      if (l) out.push({ l, fator: p.fator || 1 });
     }
+    return { linhas: out };
+  };
+  for (const [ind, spec] of Object.entries(RTN_SERIES)) {
+    let r = acha(spec.partes);
+    if (r.falta && spec.alternativa) r = acha(spec.alternativa);
+    if (r.falta) {
+      if (spec.opcional) continue;
+      const vistos = L.map((x) => rotulo(x[0])).filter((t) => /^\d/.test(t)).slice(0, 30).join(' | ');
+      throw new Error(`RTN: linha ${r.falta} não encontrada para ${ind}. Rótulos na aba: ${vistos}`);
+    }
+    linhasDe[ind] = r.linhas;
   }
   // se a linha 1.1 já vier "líquida de incentivos", somar a 1.2 contaria os incentivos duas vezes
   const trib = linhasDe['tributos-federais-tesouro'];
-  if (/l[íi]quida de incentivos/i.test(rotulo(trib[0][0]))) {
-    linhasDe['tributos-federais-tesouro'] = trib.filter((l) => !/^1\.2 Incentivos/i.test(rotulo(l[0])));
+  if (/l[íi]quida de incentivos/i.test(rotulo(trib[0].l[0]))) {
+    linhasDe['tributos-federais-tesouro'] = trib.filter((x) => !/^1\.2 Incentivos/i.test(rotulo(x.l[0])));
   }
   const out = { series: {}, pib: new Map() };
-  for (const ind of Object.keys(RTN_SERIES)) out.series[ind] = [];
+  for (const ind of Object.keys(linhasDe)) out.series[ind] = [];
   for (let j = 1; j < cab.length; j++) {
     const ano = cab[j];
     if (!Number.isInteger(ano) || ano < 1990 || ano > year) continue;
     for (const [ind, linhas] of Object.entries(linhasDe)) {
-      const vs = linhas.map((l) => l[j]);
+      const vs = linhas.map((x) => x.l[j]);
       if (vs.some((v) => typeof v !== 'number')) continue;   // ano sem todas as parcelas
-      const f = vs.reduce((a, b) => a + b, 0);
-      if (f <= 0 || f >= 1) throw new Error(`RTN: ${ind} de ${ano} fora da escala de fração (${f})`);
+      const f = linhas.reduce((a, x) => a + x.fator * x.l[j], 0);
+      const neg = RTN_SERIES[ind].negativo;
+      if (neg ? Math.abs(f) >= 1 : f <= 0 || f >= 1) throw new Error(`RTN: ${ind} de ${ano} fora da escala de fração (${f})`);
       out.series[ind].push({ ano, valor: round4(f * 100), qualidade: qualidade(ano, year) });
     }
     if (typeof pib[j] === 'number' && pib[j] > 0) out.pib.set(ano, pib[j] * 1e6);   // R$ milhões → R$
   }
   for (const [ind, obs] of Object.entries(out.series)) {
     if (obs.length < 10) throw new Error(`RTN: só ${obs.length} anos lidos para ${ind}`);
+    if (RTN_SERIES[ind].custo) {
+      const neg = obs.filter((o) => o.valor < 0).length;
+      if (neg > obs.length / 2) obs.forEach((o) => { o.valor = round4(-o.valor); });   // custo registrado como negativo
+    }
   }
   out.pessoal = out.series['pessoal-tesouro'];
   return out;
@@ -154,7 +178,7 @@ export async function somarEmendas(chunks) {
 
 export default {
   slug: 'tesouro',
-  version: 'tesouro@2',
+  version: 'tesouro@3',
   async fetch({ fetchImpl, log }) {
     const xlsxUrl = await urlDoRecurso(RTN_ID, (r) => /xlsx/i.test(r.format) && /s[ée]rie hist/i.test(r.name), { fetchImpl, log });
     const res = await baixar(xlsxUrl, { fetchImpl, log });

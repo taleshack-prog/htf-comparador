@@ -21,6 +21,20 @@ test('RTN: lê pessoal em % do PIB (fração ×100) e o PIB nominal da aba 2.1-A
   // tributos = 1.1 + 1.2 (incentivos, negativos) + 1.3; despesa total pela linha 4
   assert.deepEqual(r.series['tributos-federais-tesouro'][0], { ano: 1997, valor: 16.9, qualidade: 'oficial' });
   assert.equal(r.series['despesa-total-tesouro'][0].valor, 18);
+  // resultado primário pode ser negativo; juros guardados como custo positivo
+  assert.equal(r.series['resultado-primario-tesouro'][0].valor, 2);
+  assert.equal(r.series['resultado-primario-tesouro'].at(-1).valor, -1);
+  assert.equal(r.series['juros-nominais-tesouro'][0].valor, 5);
+});
+
+test('RTN: sem a linha 5, o primário sai de receita líquida − despesa; juros são opcionais', () => {
+  const L = [['% do PIB'], ['Discriminação', ...Array.from({ length: 12 }, (_, i) => 2000 + i)],
+    ['1.1 Receita Administrada pela RFB', ...Array(12).fill(0.1)], ['1.3 Arrecadação Líquida para o RGPS', ...Array(12).fill(0.05)],
+    ['3. RECEITA LÍQUIDA (1-2)', ...Array(12).fill(0.17)], ['4. DESPESA TOTAL', ...Array(12).fill(0.18)],
+    ['4.2  Pessoal e Encargos Sociais', ...Array(12).fill(0.04)], [' PIB Nominal (R$ Milhões)', ...Array(12).fill(1)]];
+  const r = parseRtn({ abas: ['2.1-A'], linhas: () => L }, NOW);
+  assert.equal(r.series['resultado-primario-tesouro'][0].valor, -1);
+  assert.equal(r.series['juros-nominais-tesouro'], undefined);
 });
 
 test('RTN: linha ausente gera erro com os rótulos encontrados (diagnóstico)', () => {
@@ -32,7 +46,7 @@ test('RTN: recusa planilha sem a aba, sem "% do PIB" ou fora da escala', () => {
   assert.throws(() => parseRtn({ abas: ['1.1'], linhas: () => [] }, NOW), /aba 2.1-A ausente/);
   assert.throws(() => parseRtn({ abas: ['2.1-A'], linhas: () => [['R$ Milhões']] }, NOW), /% do PIB/);
   const L = [['% do PIB'], ['Discriminação', 2020], ['1.1 Receita Administrada pela RFB', 0.1], ['1.3 Arrecadação Líquida para o RGPS', 0.05],
-    ['4. DESPESA TOTAL', 0.18], ['4.2  Pessoal e Encargos Sociais', 4.2], [' PIB Nominal (R$ Milhões)', 1]];
+    ['4. DESPESA TOTAL', 0.18], ['4.2  Pessoal e Encargos Sociais', 4.2], ['5. RESULTADO PRIMÁRIO DO GOV. CENTRAL (3-4)', 0.01], [' PIB Nominal (R$ Milhões)', 1]];
   assert.throws(() => parseRtn({ abas: ['2.1-A'], linhas: () => L }, NOW), /escala de fração/);
 });
 
@@ -69,7 +83,7 @@ test('adaptador completo: descobre URLs no CKAN, baixa e normaliza dentro do cat
   assert.equal(obs.filter((o) => o.indicator === 'pessoal-tesouro').length, 29);
   assert.equal(obs.filter((o) => o.indicator === 'tributos-federais-tesouro').length, 29);
   const un = { unidade: '% PIB' };
-  const catalog = { indicators: new Map(['pessoal-tesouro', 'emendas-tesouro', 'despesa-total-tesouro', 'tributos-federais-tesouro'].map((k) => [k, un])), entities: new Map([['brasil', {}]]) };
+  const catalog = { indicators: new Map(['pessoal-tesouro', 'emendas-tesouro', 'despesa-total-tesouro', 'tributos-federais-tesouro', 'resultado-primario-tesouro', 'juros-nominais-tesouro'].map((k) => [k, un])), entities: new Map([['brasil', {}]]) };
   assert.equal(validate(obs, catalog, { now: NOW }).ok, true);
   assert.ok(chamadas.some((u) => u === 'https://t/serie.xlsx'));
 });
