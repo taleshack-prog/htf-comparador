@@ -70,7 +70,7 @@ test('comparação traz média, cobertura, qualidade e fonte de cada governo', o
   const temer = r.governos.find((g) => g.slug === 'temer');
   const lula3 = r.governos.find((g) => g.slug === 'lula-3');
   assert.equal(temer.valor, 4);
-  assert.deepEqual(temer.cobertura, [2, 2]);
+  assert.deepEqual(temer.cobertura, [3, 3]);   // 2016–2018: 2016 conta para quem governou a maior parte dele
   assert.equal(lula3.qualidade, 'parcial');
   assert.equal(r.fontes[0].nome, 'IBGE');
 });

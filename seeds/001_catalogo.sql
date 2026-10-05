@@ -62,8 +62,8 @@ SELECT c.id, v.ini, v.fim, v.pres, v.ord, v.nota
 FROM (VALUES
   ('fhc',       1995, 2002, 'Fernando Henrique Cardoso', 1, NULL),
   ('lula',      2003, 2010, 'Luiz Inácio Lula da Silva', 2, NULL),
-  ('dilma',     2011, 2016, 'Dilma Rousseff',            3, 'Mandato encerrado em 31/08/2016 (impeachment). Por convenção de anos civis, 2016 fica nesta janela.'),
-  ('temer',     2017, 2018, 'Michel Temer',              4, 'Assumiu em 12/05/2016 (interino) e 31/08/2016 (efetivo). Janela em anos civis completos: 2017–2018. Poucos pontos de dados: baixa significância.'),
+  ('dilma',     2011, 2015, 'Dilma Rousseff',            3, 'Afastada em 12/05/2016 e destituída em 31/08/2016. Regra do Prumo: o ano de transição fica com quem governou a maior parte dele, por isso 2016 conta para o governo seguinte.'),
+  ('temer',     2016, 2018, 'Michel Temer',              4, 'Assumiu em 12/05/2016 (interino) e 31/08/2016 (efetivo), governando cerca de 7,5 dos 12 meses de 2016; pela regra do ano de transição, 2016 conta para este governo. Janela curta: poucos pontos de dados.'),
   ('bolsonaro', 2019, 2022, 'Jair Bolsonaro',            5, NULL),
   ('lula-3',    2023, 2026, 'Luiz Inácio Lula da Silva', 6, 'Mandato em curso até 31/12/2026: dados de 2026 são parciais.')
 ) AS v(slug, ini, fim, pres, ord, nota)

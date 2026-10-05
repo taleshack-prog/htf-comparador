@@ -160,17 +160,14 @@ test('cobertura mínima: indicador com menos da metade dos anos não entra na no
   assert.ok(MODOS.oficial.componentes.some((c) => c.slug === 'desemprego-oit-wb'));
 });
 
-test('variação da dívida vira ritmo anual: mandato curto não leva vantagem', opts, async () => {
-  const put = (a, v) => pool.query(`
-    INSERT INTO fact_observation (entity_id, indicator_id, periodo_ano, valor, qualidade, fonte_id, url_fonte, adaptador_versao)
-    SELECT c.id, i.id, $1, $2, 'oficial', i.fonte_id, 'https://exemplo.test', 'teste'
-    FROM dim_country c, dim_indicator i WHERE c.slug = 'brasil' AND i.slug = 'divida-bruta-fmi'
-    ON CONFLICT DO NOTHING`, [a, v]);
-  await put(2016, 70); await put(2017, 74); await put(2018, 78);   // Temer: +8 em 2 anos
-  await put(2010, 60); for (let a = 2011; a <= 2016; a++) await put(a, 60 + (a - 2010) * 1.5);  // Dilma: +9 em 6 anos (até 2016 = 69)
-  const r = await ranking(pool, { modo: 'oficial' });
-  const it = (slug) => r.governos.find((g) => g.slug === slug).itens.find((i) => i.slug === 'divida-bruta-fmi');
-  assert.equal(it('temer').valor, 4);      // 8 ÷ 2
-  assert.equal(it('temer').total, 8);
-  assert.equal(r.componentes.find((c) => c.slug === 'divida-bruta-fmi').unidade, 'p.p. do PIB ao ano');
+test('trajetória: média do mandato menos o ano anterior à posse; escala robusta com cortes', async () => {
+  const { historicoTrajetoria, normalizeRobusta, MODOS: M } = await import('../lib/ranking.js');
+  const br = new Map([[2000, 10], [2001, 8], [2002, 8], [2003, 8], [2004, 8]].map(([a, v]) => [a, { valor: v, qualidade: 'oficial' }]));
+  assert.deepEqual(historicoTrajetoria(br), [-2, 0]);   // base 2000: média 2001–2004 (8) − 10; base 2001: 2002–2004 − 8
+  const h = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, -900];   // choque extremo não achata a escala
+  const n = normalizeRobusta([-900, 0, 4], 'menor', h);
+  assert.equal(n[0], 100);
+  assert.ok(n[1] > 40 && n[1] < 60);
+  assert.ok(!M.oficial.componentes.some((c) => ['divida-bruta-fmi', 'juros-nominais-tesouro'].includes(c.slug)));
+  assert.ok(M.trajetoria.trajetoria);
 });

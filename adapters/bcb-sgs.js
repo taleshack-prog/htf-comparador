@@ -4,7 +4,8 @@
 // As consultas são feitas em janelas de até 10 anos (limite do SGS para séries longas).
 import { fetchJson, toNumber, round4 } from './base.js';
 
-export const FIRST_YEAR = 1995;
+// 1994 entra para medir o que o primeiro governo da série (1995) recebeu.
+export const FIRST_YEAR = 1994;
 
 // Cada série: indicador do catálogo, código SGS e como vira valor anual.
 //   anual          → a série já é anual

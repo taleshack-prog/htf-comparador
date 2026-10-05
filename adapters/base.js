@@ -77,7 +77,8 @@ export function validate(observations, catalog, { now = new Date() } = {}) {
     if (!catalog.entities.has(o.entity)) errors.push(`entidade fora do catálogo: ${o.entity}`);
     if (!Number.isInteger(o.ano) || o.ano < 1990 || o.ano > year) errors.push(`ano inválido: ${key}`);
     if (typeof o.valor !== 'number' || !Number.isFinite(o.valor)) errors.push(`valor inválido: ${key}`);
-    const b = BOUNDS[ind.unidade];
+    // Antes do Plano Real (1994 e anteriores) a inflação anual passou de 900%: limite próprio.
+    const b = ind.unidade === '%' && o.ano < 1995 ? [-30, 5000] : BOUNDS[ind.unidade];
     if (b && (o.valor < b[0] || o.valor > b[1])) errors.push(`fora do limite plausível (${b.join('…')}): ${key} = ${o.valor}`);
     if (!['oficial', 'parcial', 'projecao', 'estimativa'].includes(o.qualidade)) errors.push(`qualidade inválida: ${key}`);
     if (o.ano === year && o.qualidade === 'oficial') errors.push(`ano corrente não pode ser "oficial" (CA5): ${key}`);

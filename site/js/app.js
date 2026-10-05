@@ -38,7 +38,7 @@ function readUrl() {
   const rpesos = {};
   for (const par of (p.get('pesos') || '').split(',').filter(Boolean)) { const [k, v] = par.split(':'); if (k && v !== undefined) rpesos[k] = Number(v); }
   return { ind: p.get('ind'), gov: p.get('gov'), ref: p.get('ref') || '', ordem: p.get('ordem') || 'periodo',
-    rmodo: p.get('ranking') === 'relativo' ? 'relativo' : 'oficial', rpesos };
+    rmodo: ['relativo', 'trajetoria'].includes(p.get('ranking')) ? p.get('ranking') : 'oficial', rpesos };
 }
 function writeUrl() {
   const p = new URLSearchParams();
@@ -277,7 +277,8 @@ function renderRanking() {
     }
     const linhas = d.componentes.map((c) => {
       const it = g.itens.find((i) => i.slug === c.slug);
-      return `${c.nome}: ${it.nota === null ? 'sem dado' : `${nf(0).format(it.nota)} (${fmtValor(it.valor, c.unidade, { sinal: c.unidade.startsWith('p.p.') })})`}${c.peso === 0 ? ' · fora' : ''}`;
+      const det = it.herdado !== undefined ? `; herdou ${nf(1).format(it.herdado)}, média ${nf(1).format(it.media)}` : '';
+      return `${c.nome}: ${it.nota === null ? 'sem dado' : `${nf(0).format(it.nota)} (${fmtValor(it.valor, c.unidade, { sinal: c.unidade.startsWith('p.p.') || it.herdado !== undefined })}${det})`}${c.peso === 0 ? ' · fora' : ''}`;
     }).join('<br>');
     const blocosTxt = (d.blocos || []).length > 1
       ? d.blocos.map((b) => `${b.nome}: ${g.blocos?.[b.slug] == null ? '—' : nf(1).format(g.blocos[b.slug])}`).join(' · ') + '<br>' : '';
