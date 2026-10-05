@@ -195,7 +195,17 @@ function renderPesos(d) {
   if (box.dataset.chave === chave) return; // não recria os controles durante o arraste
   box.dataset.chave = chave;
   box.innerHTML = '';
-  for (const c of d.componentes) {
+  const grupos = (d.blocos && d.blocos.length > 1)
+    ? d.blocos.map((b) => ({ nome: b.nome, itens: d.componentes.filter((c) => b.componentes.includes(c.slug)) }))
+    : [{ nome: null, itens: d.componentes }];
+  for (const g of grupos) {
+    if (g.nome) {
+      const h = document.createElement('p');
+      h.className = 'peso-bloco';
+      h.textContent = `${g.nome} · vale 1/${grupos.length} da nota`;
+      box.appendChild(h);
+    }
+  for (const c of g.itens) {
     const id = `peso-${c.slug}`;
     const wrap = document.createElement('label');
     wrap.className = 'peso';
@@ -211,6 +221,7 @@ function renderPesos(d) {
       clearTimeout(t); t = setTimeout(loadRanking, 200);
     });
     box.appendChild(wrap);
+  }
   }
 }
 
@@ -264,7 +275,9 @@ function renderRanking() {
       const it = g.itens.find((i) => i.slug === c.slug);
       return `${c.nome}: ${it.nota === null ? 'sem dado' : `${nf(0).format(it.nota)} (${fmtValor(it.valor, c.unidade, { sinal: c.unidade.startsWith('p.p.') })})`}${c.peso === 0 ? ' · fora' : ''}`;
     }).join('<br>');
-    const html = `<strong>${nome}</strong> (${g.ano_inicio}–${g.ano_fim})<br>Nota geral: ${g.nota === null ? '—' : nf(1).format(g.nota)}<br>${linhas}`;
+    const blocosTxt = (d.blocos || []).length > 1
+      ? d.blocos.map((b) => `${b.nome}: ${g.blocos?.[b.slug] == null ? '—' : nf(1).format(g.blocos[b.slug])}`).join(' · ') + '<br>' : '';
+    const html = `<strong>${nome}</strong> (${g.ano_inicio}–${g.ano_fim})<br>Nota geral: ${g.nota === null ? '—' : nf(1).format(g.nota)}<br>${blocosTxt}${linhas}`;
     grp.addEventListener('mousemove', (e) => showTip(html, e.clientX, e.clientY));
     grp.addEventListener('mouseleave', hideTip);
     grp.addEventListener('focus', () => { const bb = grp.getBoundingClientRect(); showTip(html, bb.left + 40, bb.top); });
@@ -272,12 +285,15 @@ function renderRanking() {
   });
   box.appendChild(s);
 
+  const multi = (d.blocos || []).length > 1;
+  const cabBlocos = multi ? d.blocos.map((b) => `<th class="num">${b.nome}</th>`).join('') : '';
+  const celBlocos = (g) => (multi ? d.blocos.map((b) => `<td class="num">${g.blocos?.[b.slug] == null ? '—' : nf(1).format(g.blocos[b.slug])}</td>`).join('') : '');
   const cab = d.componentes.map((c) => `<th class="num">${c.nome}${c.peso === 0 ? ' (fora)' : c.peso !== 1 ? ` (peso ${c.peso})` : ''}</th>`).join('');
   const lin = d.governos.map((g) => `<tr><td>${g.posicao ? `${g.posicao}º` : '—'}</td><td>${nomeCurto(g.nome)}</td>
-    <td class="num"><strong>${g.nota === null ? '—' : nf(1).format(g.nota)}</strong></td>
+    <td class="num"><strong>${g.nota === null ? '—' : nf(1).format(g.nota)}</strong></td>${celBlocos(g)}
     ${d.componentes.map((c) => { const it = g.itens.find((i) => i.slug === c.slug);
       return `<td class="num">${it.nota === null ? '—' : `${nf(0).format(it.nota)}<br><span class="muted">${fmtValor(it.valor, c.unidade, { sinal: c.unidade.startsWith('p.p.') })}</span>`}</td>`; }).join('')}</tr>`).join('');
-  $('#tabela-ranking').innerHTML = `<table><thead><tr><th>#</th><th>Governo</th><th class="num">Nota</th>${cab}</tr></thead><tbody>${lin}</tbody></table>`;
+  $('#tabela-ranking').innerHTML = `<table><thead><tr><th>#</th><th>Governo</th><th class="num">Nota</th>${cabBlocos}${cab}</tr></thead><tbody>${lin}</tbody></table>`;
 }
 
 // ---------- gráfico de barras com o prumo ----------

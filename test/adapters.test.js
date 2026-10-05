@@ -141,15 +141,16 @@ test('WGI: pede a base 3 com o código atual e grava o link público com sublinh
   const { worldbankWgi, wbUrl } = await import('../adapters/worldbank.js');
   assert.match(wbUrl('GOV_WGI_CC.SC', 2026, { paises: ['BRA'], fonte: 3 }), /country\/BRA\/indicator\/GOV_WGI_CC\.SC\?.*&source=3$/);
   const { fakeFetch } = await import('./helpers.js');
-  const impl = fakeFetch([['GOV_WGI_CC.SC', wbPayload([
+  const impl = fakeFetch([['GOV_WGI_', wbPayload([
     { countryiso3code: 'BRA', date: '2023', value: 38.4 },
     { countryiso3code: 'SWE', date: '2023', value: 91.2 },
   ])]]);
   const raw = await worldbankWgi.fetch({ fetchImpl: impl, now: NOW, log: () => {} });
   assert.match(impl.calls[0], /BRA;SGP;SWE/);
   const out = worldbankWgi.normalize(raw, { catalog: { byIso3: new Map([['BRA', 'brasil'], ['SWE', 'suecia']]) }, now: NOW });
-  assert.deepEqual(out.map((o) => [o.entity, o.indicator, o.ano, o.valor]), [
-    ['brasil', 'controle-corrupcao-wb', 2023, 38.4], ['suecia', 'controle-corrupcao-wb', 2023, 91.2]]);
+  assert.deepEqual(out.filter((o) => o.indicator === 'controle-corrupcao-wb').map((o) => [o.entity, o.ano, o.valor]), [
+    ['brasil', 2023, 38.4], ['suecia', 2023, 91.2]]);
+  assert.deepEqual([...new Set(out.map((o) => o.indicator))], ['controle-corrupcao-wb', 'qualidade-regulatoria-wb', 'efetividade-governo-wb']);
   assert.equal(out[0].url, 'https://data.worldbank.org/indicator/GOV_WGI_CC_SC');
 });
 
@@ -164,4 +165,21 @@ test('SGS: blocos antes do início da série (404 ou objeto de erro) são pulado
   assert.ok(raw['13762'].length >= 1);
   const vazio = async () => ({ ok: false, status: 404, json: async () => ({}) });
   await assert.rejects(() => bcb.fetch({ fetchImpl: vazio, now: NOW, log: () => {} }), /nenhum bloco/);
+});
+
+test('juro real: Selic efetiva do ano descontada do IPCA; ano incompleto fica fora', async () => {
+  const { juroReal } = await import('../adapters/bcb-sgs.js');
+  const mes = (ano, v) => Array.from({ length: 12 }, (_, i) => ({ data: `01/${String(i + 1).padStart(2, '0')}/${ano}`, valor: String(v) }));
+  const r = juroReal([...mes(2020, 10), ...mes(2021, 10).slice(0, 6)], [...mes(2020, 0.5), ...mes(2021, 0.5)], NOW);
+  assert.equal(r.length, 1);
+  const esperado = (1.10 / (1.005 ** 12) - 1) * 100;
+  assert.ok(Math.abs(r[0].valor - esperado) < 1e-3);
+  assert.equal(r[0].qualidade, 'oficial');
+});
+
+test('NFSP das estatais: sinal invertido (positivo = superávit)', async () => {
+  const { default: bcb } = await import('../adapters/bcb-sgs.js');
+  const raw = { '13762': [], '5760': [], '5790': [{ data: '01/12/2019', valor: '-0.10' }], '4189': [], '433': [] };
+  const obs = bcb.normalize(raw, { now: NOW });
+  assert.deepEqual(obs.map((o) => [o.indicator, o.ano, o.valor]), [['estatais-primario-bcb', 2019, 0.1]]);
 });

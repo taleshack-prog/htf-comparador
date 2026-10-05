@@ -13,6 +13,7 @@ export const SERIES = [
   { indicator: 'desemprego-oit-wb',     codigo: 'SL.UEM.TOTL.ZS' },
   { indicator: 'receita-tributaria-wb', codigo: 'GC.TAX.TOTL.GD.ZS' },
   { indicator: 'termos-troca-wb',       codigo: 'TT.PRI.MRCH.XD.WD' },
+  { indicator: 'investimento-wb',       codigo: 'NE.GDI.FTOT.ZS' },
 ];
 
 export const wbUrl = (codigo, toYear, { paises = COUNTRIES, fonte } = {}) =>
@@ -61,6 +62,8 @@ export default {
 // percentil CC.PER.RNK foi arquivado e a API responde "indicator was not found".
 export const WGI_SERIES = [
   { indicator: 'controle-corrupcao-wb', codigo: 'GOV_WGI_CC.SC' },
+  { indicator: 'qualidade-regulatoria-wb', codigo: 'GOV_WGI_RQ.SC' },
+  { indicator: 'efetividade-governo-wb', codigo: 'GOV_WGI_GE.SC' },
 ];
 // A página pública usa sublinhado no lugar do ponto: GOV_WGI_CC_SC.
 export const wgiPublicUrl = (codigo) => `https://data.worldbank.org/indicator/${codigo.replace(/\./g, '_')}`;

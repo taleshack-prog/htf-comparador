@@ -149,6 +149,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 16px 48px; }
 
 /* Ranking ------------------------------------------------------------------ */
 .pesos { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px 20px; margin: 4px 0 14px; }
+.peso-bloco { grid-column: 1 / -1; margin: 6px 0 -2px; font-size: 13px; font-weight: 700; color: var(--chumbo); text-transform: uppercase; letter-spacing: .04em; }
 .peso { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px; font-size: 14px; }
 .peso input { grid-column: 1 / -1; width: 100%; accent-color: var(--latao); }
 .peso output { font-weight: 600; font-variant-numeric: tabular-nums; }
