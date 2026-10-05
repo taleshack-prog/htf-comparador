@@ -65,6 +65,8 @@ export const RTN_SERIES = {
     partes: [{ re: /^5\.? RESULTADO PRIM[ÁA]RIO DO GOV(?:ERNO|\.)? ?CENTRAL/i }],
     alternativa: [{ re: /^3\.? RECEITA L[ÍI]QUIDA/i }, { re: /^4\.? DESPESA TOTAL$/i, fator: -1 }],
   },
+  // dividendos e participações recebidos pelo Tesouro (receita não administrada pela RFB)
+  'dividendos-tesouro': { opcional: true, partes: [{ re: /^1\.4\.\d+ Dividendos e Participa[çc][õo]es/i }] },
   // juros nominais do governo central (linha 9), como custo positivo
   'juros-nominais-tesouro': { negativo: true, opcional: true, custo: true, partes: [{ re: /^9\.? JUROS NOMINAIS/i }] },
 };
@@ -178,7 +180,7 @@ export async function somarEmendas(chunks) {
 
 export default {
   slug: 'tesouro',
-  version: 'tesouro@3',
+  version: 'tesouro@4',
   async fetch({ fetchImpl, log }) {
     const xlsxUrl = await urlDoRecurso(RTN_ID, (r) => /xlsx/i.test(r.format) && /s[ée]rie hist/i.test(r.name), { fetchImpl, log });
     const res = await baixar(xlsxUrl, { fetchImpl, log });
