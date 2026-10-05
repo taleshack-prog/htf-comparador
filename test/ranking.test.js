@@ -180,3 +180,10 @@ test('trajetória: média do mandato menos o ano anterior à posse; escala robus
   assert.ok(M.trajetoria.trajetoria);
   assert.ok(!M.trajetoria.componentes.some((c) => c.slug.startsWith('pib')));
 });
+
+test('ano civil em curso fica fora da nota (ano incompleto não é comparável)', async () => {
+  const { semAnoCorrente } = await import('../lib/ranking.js');
+  const serie = new Map([[2024, { valor: 4.8 }], [2025, { valor: 4.3 }], [2026, { valor: 2.9 }]]);
+  assert.deepEqual([...semAnoCorrente(serie, NOW).keys()], [2024, 2025]);
+  assert.equal(semAnoCorrente(null, NOW), null);
+});
