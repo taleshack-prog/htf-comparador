@@ -102,7 +102,7 @@ test('World Bank grava Brasil, países e grupos de pares pela mesma fonte', opts
   const ok = fakeFetch([['api.worldbank.org', wbPayload(['BRA', 'SGP', 'SWE', 'LCN', 'MIC', 'WLD'].flatMap(rows))]]);
   const r = await runAdapter(worldbank, { pool, fetchImpl: ok, now: NOW });
   assert.equal(r.status, 'ok');
-  assert.equal(r.gravadas, 36); // 6 entidades × 6 séries
+  assert.equal(r.gravadas, 60); // 6 entidades × 10 séries
 });
 
 test('extrato de créditos é somente de inserção e não aceita lançamento duplicado', opts, async () => {

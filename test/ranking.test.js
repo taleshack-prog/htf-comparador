@@ -39,8 +39,8 @@ test('sensibilidade: notas próximas viram empate técnico; distância grande, n
 });
 
 test('pesos: padrão 1, aceita 0–10, ignora indicador desconhecido', () => {
-  const p = parsePesos('pib-anual:3,ipca-anual:0,xyz:5,desemprego-oit-wb:99', MODOS.oficial.componentes);
-  assert.equal(p['pib-anual'], 3);
+  const p = parsePesos('pib-per-capita-wb:3,ipca-anual:0,xyz:5,desemprego-oit-wb:99', MODOS.oficial.componentes);
+  assert.equal(p['pib-per-capita-wb'], 3);
   assert.equal(p['ipca-anual'], 0);
   assert.equal(p['desemprego-oit-wb'], 1);
   assert.equal(p.xyz, undefined);
@@ -73,6 +73,7 @@ before(async () => {
     FROM dim_country c, dim_indicator i WHERE c.slug = $1 AND i.slug = $2`, [e, i, a, v, q]);
   for (let a = 1995; a <= 2025; a++) {
     await put('brasil', 'pib-anual', a, a <= 2002 ? 2 : a <= 2010 ? 4 : a <= 2016 ? 0 : a <= 2018 ? 1 : a <= 2022 ? 1.5 : 3);
+    await put('brasil', 'pib-per-capita-wb', a, a <= 2002 ? 2 : a <= 2010 ? 4 : a <= 2016 ? 0 : a <= 2018 ? 1 : a <= 2022 ? 1.5 : 3);
     await put('brasil', 'ipca-anual', a, a <= 2002 ? 9 : 5);
     await put('brasil', 'pib-anual-wb', a, a === 2020 ? -3 : 2);
     await put('america-latina', 'pib-anual-wb', a, a === 2020 ? -7 : 2);
@@ -106,7 +107,7 @@ test('ranking oficial: média ponderada só dos indicadores com dado e aviso de 
 test('peso zero tira o indicador da conta', opts, async () => {
   const r = await ranking(pool, { modo: 'oficial', pesos: 'ipca-anual:0,resultado-primario-tesouro:0' });
   const fhc = r.governos.find((g) => g.slug === 'fhc');
-  assert.equal(fhc.nota, r.governos.find((g) => g.slug === 'fhc').itens.find((i) => i.slug === 'pib-anual').nota);
+  assert.equal(fhc.nota, r.governos.find((g) => g.slug === 'fhc').itens.find((i) => i.slug === 'pib-per-capita-wb').nota);
 });
 
 test('ranking relativo: queda comum à região não pune o governo', opts, async () => {
@@ -225,7 +226,7 @@ test('WGI com variação dentro do erro: escala do índice, margem no item e na 
   assert.equal(itGe.nota, 0);                         // variação real: escala histórica
   assert.equal(itGe.erro, Math.round((5 / 1.645) * (100 / 60) * 100) / 100);
   // simulação: só com os indicadores que têm dado na base de teste (os demais com peso 0)
-  const usados = ['pib-anual', 'ipca-anual', 'qualidade-regulatoria-wb', 'efetividade-governo-wb'];
+  const usados = ['pib-per-capita-wb', 'ipca-anual', 'qualidade-regulatoria-wb', 'efetividade-governo-wb'];
   const pesos = MODOS.oficial.componentes.map((c) => `${c.slug}:${usados.includes(c.slug) ? 1 : 0}`).join(',');
   const r2 = await ranking(pool, { modo: 'oficial', pesos });
   assert.equal(r2.sensibilidade.erro_medida, true);
@@ -242,7 +243,7 @@ test('defasagem de 1 ano: mede os anos do mandato deslocados, mostra o mandato r
   assert.deepEqual([lula.ano_inicio, lula.ano_fim], [2003, 2010]);
   assert.deepEqual(lula.anos_medidos, [2004, 2011]);
   // base de teste: PIB 2 em 1995–2002, 4 em 2003–2010, 0 em 2011–2016 → Lula medido em 2004–2011 = (7×4 + 0) / 8
-  assert.equal(lula.itens.find((i) => i.slug === 'pib-anual').valor, 3.5);
+  assert.equal(lula.itens.find((i) => i.slug === 'pib-per-capita-wb').valor, 3.5);
   assert.match(r.avisos.join(' '), /Defasagem de 1 ano/);
   assert.equal(await ranking(pool, { modo: 'oficial', defasagem: 3 }), null);
 });
@@ -254,4 +255,16 @@ test('escala com cortes em 5% e 95%: um ano extremo não achata os demais', asyn
   const [a, b] = normalizeEscala([-1, 2.1, -10], 'maior', h);
   assert.equal(a, 0); assert.equal(b, 68.9);
   assert.deepEqual(limitesEscala([0, 0, 0, 0, 0, 4]), [0, 4]);   // série quase constante: pior e melhor
+});
+
+test('variação sem dado no ano anterior à posse usa o último ano até 2 antes; bloco social', async () => {
+  const { aggregateWindow } = await import('../lib/compare.js');
+  const { RECUO_BASE, MODOS: M } = await import('../lib/ranking.js');
+  const s = new Map([[2009, 8.4], [2011, 7.1], [2015, 5.4]].map(([a, v]) => [a, { valor: v, qualidade: 'oficial' }]));
+  assert.equal(aggregateWindow(s, 2011, 2015, 'variacao').valor, null);                   // sem 2010, sem recuo
+  const a = aggregateWindow(s, 2011, 2015, 'variacao', { recuoBase: RECUO_BASE });
+  assert.equal(a.base_ano, 2009); assert.equal(a.valor, -3);
+  assert.deepEqual(M.oficial.blocos.map((b) => b.slug), ['economia', 'contas', 'social', 'instituicoes']);
+  assert.ok(!M.oficial.componentes.some((c) => c.slug === 'pib-anual'));                  // PIB total não conta duas vezes
+  assert.ok(M.relativo.componentes.some((c) => c.slug === 'mortalidade-infantil-wb'));
 });

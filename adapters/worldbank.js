@@ -14,6 +14,10 @@ export const SERIES = [
   { indicator: 'receita-tributaria-wb', codigo: 'GC.TAX.TOTL.GD.ZS' },
   { indicator: 'termos-troca-wb',       codigo: 'TT.PRI.MRCH.XD.WD' },
   { indicator: 'investimento-wb',       codigo: 'NE.GDI.FTOT.ZS' },
+  { indicator: 'pib-per-capita-wb',     codigo: 'NY.GDP.PCAP.KD.ZG' },
+  { indicator: 'pobreza-wb',            codigo: 'SI.POV.DDAY' },
+  { indicator: 'gini-wb',               codigo: 'SI.POV.GINI' },
+  { indicator: 'mortalidade-infantil-wb', codigo: 'SP.DYN.IMRT.IN' },
 ];
 
 export const wbUrl = (codigo, toYear, { paises = COUNTRIES, fonte } = {}) =>
@@ -42,7 +46,7 @@ export function parseWb(payload, byIso3, now = new Date()) {
 
 export default {
   slug: 'worldbank',
-  version: 'worldbank@1',
+  version: 'worldbank@2',
   async fetch({ fetchImpl, now, log }) {
     const out = {};
     for (const s of SERIES) out[s.codigo] = await fetchJson(wbUrl(s.codigo, now.getUTCFullYear()), { fetchImpl, log });

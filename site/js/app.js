@@ -278,7 +278,8 @@ function renderRanking() {
     const linhas = d.componentes.map((c) => {
       const it = g.itens.find((i) => i.slug === c.slug);
       const det = (it.margem ? ` ± ${nf(1).format(it.margem)} de margem de erro` : '')
-        + (it.herdado !== undefined ? `; herdou ${nf(1).format(it.herdado)}, média ${nf(1).format(it.media)}` : '');
+        + (it.herdado !== undefined ? `; herdou ${nf(1).format(it.herdado)}, média ${nf(1).format(it.media)}` : '')
+        + (it.base_ano ? `; base ${it.base_ano} (sem dado no ano anterior à posse)` : '');
       return `${c.nome}: ${it.nota === null ? 'sem dado' : `${nf(0).format(it.nota)} (${fmtValor(it.valor, c.unidade, { sinal: c.unidade.startsWith('p.p.') || it.herdado !== undefined })}${det})`}${c.peso === 0 ? ' · fora' : ''}`;
     }).join('<br>');
     const blocosTxt = (d.blocos || []).length > 1
