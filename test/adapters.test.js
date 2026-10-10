@@ -216,9 +216,18 @@ test('Banco Mundial externo: dívida externa e investimento estrangeiro, só par
   const { fakeFetch } = await import('./helpers.js');
   const impl = fakeFetch([['indicator/', wbPayload([{ countryiso3code: 'BRA', date: '2023', value: 30.1 }])]]);
   const raw = await worldbankExterno.fetch({ fetchImpl: impl, now: NOW, log: () => {} });
-  assert.equal(impl.calls.length, EXTERNO_SERIES.length);
+  assert.equal(impl.calls.length, EXTERNO_SERIES.length + 4);   // + 4 séries de deflatores
   const out = worldbankExterno.normalize(raw, { catalog: { byIso3: new Map([['BRA', 'brasil']]) }, now: NOW });
-  assert.deepEqual(out.map((o) => o.indicator), ['divida-externa-wb', 'ide-entrada-wb']);
+  assert.deepEqual(out.map((o) => o.indicator), ['divida-externa-wb', 'ide-entrada-wb', 'termos-troca-deflatores-wb']);
+  assert.equal(out[2].valor, 100);   // (preço exp. ÷ preço imp.) × 100 com valores iguais
   // fora da nota em todos os modos
   assert.ok(!Object.values(MODOS).some((m) => m.componentes.some((c) => ['divida-externa-wb', 'ide-entrada-wb'].includes(c.slug))));
+});
+
+test('termos de troca pelos deflatores: preço das exportações ÷ preço das importações', async () => {
+  const { termosDeTroca, DEFLATORES } = await import('../adapters/worldbank.js');
+  const p = (v) => wbPayload([{ countryiso3code: 'BRA', date: '2001', value: v }]);
+  const raw = { [DEFLATORES.expCd]: p(120), [DEFLATORES.expKd]: p(100), [DEFLATORES.impCd]: p(110), [DEFLATORES.impKd]: p(100) };
+  const out = termosDeTroca(raw, new Map([['BRA', 'brasil']]), NOW);
+  assert.equal(out[0].valor, Math.round((1.2 / 1.1) * 100 * 10000) / 10000);
 });

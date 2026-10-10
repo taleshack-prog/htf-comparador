@@ -133,16 +133,41 @@ export const EXTERNO_SERIES = [
   { indicator: 'divida-externa-wb',     codigo: 'DT.DOD.DECT.GN.ZS' },
   { indicator: 'ide-entrada-wb',        codigo: 'BX.KLT.DINV.WD.GD.ZS' },
 ];
+// Termos de troca pelas contas nacionais: preço das exportações ÷ preço das importações, com os
+// deflatores implícitos (valor em dólares correntes ÷ valor em dólares constantes). A série
+// pronta do Banco Mundial (TT.PRI.MRCH.XD.WD) só começa em 2005 para o Brasil.
+export const DEFLATORES = {
+  expCd: 'NE.EXP.GNFS.CD', expKd: 'NE.EXP.GNFS.KD', impCd: 'NE.IMP.GNFS.CD', impKd: 'NE.IMP.GNFS.KD',
+};
+export function termosDeTroca(raw, byIso3, now) {
+  const serie = (cod) => new Map(parseWb(raw[cod], byIso3, now).filter((o) => o.entity === 'brasil').map((o) => [o.ano, o]));
+  const [xc, xk, mc, mk] = [DEFLATORES.expCd, DEFLATORES.expKd, DEFLATORES.impCd, DEFLATORES.impKd].map(serie);
+  const out = [];
+  for (const [ano, o] of xc) {
+    if (!xk.has(ano) || !mc.has(ano) || !mk.has(ano)) continue;
+    const v = (o.valor / xk.get(ano).valor) / (mc.get(ano).valor / mk.get(ano).valor) * 100;
+    if (!Number.isFinite(v) || v <= 0) continue;
+    const qual = [o, xk.get(ano), mc.get(ano), mk.get(ano)].some((x) => x.qualidade !== 'oficial') ? 'parcial' : 'oficial';
+    out.push({ entity: 'brasil', ano, valor: round4(v), qualidade: qual, indicator: 'termos-troca-deflatores-wb',
+      url: wbPublicUrl(DEFLATORES.expCd) });
+  }
+  return out;
+}
+
 export const worldbankExterno = {
   slug: 'worldbank-externo',
-  version: 'worldbank-externo@1',
+  version: 'worldbank-externo@2',
   async fetch({ fetchImpl, now, log }) {
-    return buscarSeries(EXTERNO_SERIES, { fetchImpl, now, log });
+    const series = [...EXTERNO_SERIES, ...Object.values(DEFLATORES).map((codigo) => ({ codigo }))];
+    return buscarSeries(series, { fetchImpl, now, log });
   },
   normalize(raw, { catalog, now }) {
-    return EXTERNO_SERIES.flatMap((s) =>
-      parseWb(raw[s.codigo], catalog.byIso3, now).map((o) => ({
-        ...o, indicator: s.indicator, url: wbPublicUrl(s.codigo),
-      })));
+    return [
+      ...EXTERNO_SERIES.flatMap((s) =>
+        parseWb(raw[s.codigo], catalog.byIso3, now).map((o) => ({
+          ...o, indicator: s.indicator, url: wbPublicUrl(s.codigo),
+        }))),
+      ...termosDeTroca(raw, catalog.byIso3, now),
+    ];
   },
 };
