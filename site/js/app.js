@@ -227,7 +227,7 @@ function renderPesos(d) {
 
 function renderRanking() {
   const d = state.rdata;
-  $('#ranking-descricao').textContent = d.descricao;
+  $('#ranking-descricao').textContent = `${d.descricao} O resultado aparece em grupos (G1, G2…): governos no mesmo grupo estão em empate técnico, e a ordem dentro do grupo não é conclusão.`;
   $('#ranking-formula').textContent = d.formula + (d.sensibilidade ? ` Sensibilidade: ${d.sensibilidade.metodo}` : '');
   $('#ranking-avisos').innerHTML = d.avisos.map((a) => `<li>${a}</li>`).join('');
   renderPesos(d);
@@ -251,8 +251,8 @@ function renderRanking() {
     const y = 8 + k * rowH;
     const barY = narrow ? y + 24 : y + 10;
     const grp = svg('g', { class: 'alvo', tabindex: 0 }, s);
-    const pos = svg('text', { x: narrow ? x0 - 24 : labelW + 4, y: barY + 15, 'font-size': 15, 'font-weight': 800 }, grp);
-    pos.textContent = g.posicao ? `${g.posicao}º` : '—';
+    const pos = svg('text', { x: narrow ? x0 - 24 : labelW + 4, y: barY + 15, 'font-size': 14, 'font-weight': 800 }, grp);
+    pos.textContent = g.grupo ? `G${g.grupo}` : '—';
     const nome = nomeCurto(g.nome);
     const t = svg('text', { x: narrow ? x0 : 0, y: narrow ? y + 16 : barY + 15, 'font-size': 14, 'font-weight': 600 }, grp);
     t.textContent = nome + ' ';
@@ -298,11 +298,11 @@ function renderRanking() {
   const celBlocos = (g) => (multi ? d.blocos.map((b) => `<td class="num">${g.blocos?.[b.slug] == null ? '—' : nf(1).format(g.blocos[b.slug])}</td>`).join('') : '');
   const cab = d.componentes.map((c) => `<th class="num">${c.nome}${c.peso === 0 ? ' (fora)' : c.peso !== 1 ? ` (peso ${String(c.peso).replace('.', ',')})` : ''}</th>`).join('');
   const faixaCel = (g) => (g.sensibilidade ? `${g.sensibilidade.faixa[0]}º–${g.sensibilidade.faixa[1]}º${g.empate ? '<br><span class="muted">empate</span>' : ''}` : '—');
-  const lin = d.governos.map((g) => `<tr><td>${g.posicao ? `${g.posicao}º` : '—'}</td><td>${nomeCurto(g.nome)}</td><td class="num">${faixaCel(g)}</td>
+  const lin = d.governos.map((g) => `<tr><td>${g.grupo ? `G${g.grupo}` : '—'}</td><td>${nomeCurto(g.nome)}</td><td class="num">${faixaCel(g)}</td>
     <td class="num"><strong>${g.nota === null ? '—' : nf(1).format(g.nota)}</strong></td>${celBlocos(g)}
     ${d.componentes.map((c) => { const it = g.itens.find((i) => i.slug === c.slug);
       return `<td class="num">${it.nota === null ? '—' : `${nf(0).format(it.nota)}<br><span class="muted">${fmtValor(it.valor, c.unidade, { sinal: c.unidade.startsWith('p.p.') })}</span>`}</td>`; }).join('')}</tr>`).join('');
-  $('#tabela-ranking').innerHTML = `<table><thead><tr><th>#</th><th>Governo</th><th class="num">Faixa nos cenários</th><th class="num">Nota</th>${cabBlocos}${cab}</tr></thead><tbody>${lin}</tbody></table>`;
+  $('#tabela-ranking').innerHTML = `<table><thead><tr><th>Grupo</th><th>Governo</th><th class="num">Faixa nos cenários</th><th class="num">Nota</th>${cabBlocos}${cab}</tr></thead><tbody>${lin}</tbody></table>`;
 }
 
 // ---------- gráfico de barras com o prumo ----------
@@ -637,6 +637,45 @@ function mostrarCota(c) {
     : 'Sua consulta grátis já foi usada. Créditos e assinatura chegam em breve; perguntas já respondidas antes continuam liberadas.';
 }
 
+// ---------- leituras auxiliares (fora da nota) ----------
+const sinal = (v, casas = 1) => (v === null || v === undefined ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${nf(casas).format(Math.abs(v))}`);
+async function loadLeituras() {
+  const v = encodeURIComponent(versaoDados());
+  try {
+    const r = await fetch(`/api/v1/sorte?v=${v}`);
+    const d = await r.json();
+    if (!r.ok || !d.disponivel) throw new Error(d.error || d.motivo || `erro ${r.status}`);
+    const lin = d.governos.map((g) => `<tr><td>${nomeCurto(g.nome)} <span class="muted">${g.ano_inicio}–${g.ano_fim}</span></td>
+      <td class="num">${g.crescimento === null ? '—' : `${nf(1).format(g.crescimento)}%`}</td>
+      <td class="num">${sinal(g.efeito_externo)}</td><td class="num">${sinal(g.nao_explicado)}</td>
+      <td class="num muted">${g.anos}</td></tr>`).join('');
+    $('#tabela-sorte').innerHTML = `<table><thead><tr><th>Governo</th><th class="num">Crescimento médio do PIB</th>
+      <th class="num">Cenário externo (p.p. vs. média ${nf(1).format(d.media_geral)}%)</th><th class="num">Não explicado (política e outros)</th><th class="num">Anos</th></tr></thead><tbody>${lin}</tbody></table>`;
+    $('#sorte-metodo').textContent = `${d.metodo} R² = ${nf(2).format(d.r2)}. ${d.avisos.join(' ')}`;
+  } catch (e) {
+    $('#tabela-sorte').innerHTML = `<p class="vazio">Leitura indisponível: ${e.message}</p>`;
+  }
+  try {
+    const r = await fetch(`/api/v1/integridade?v=${v}`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || `erro ${r.status}`);
+    const tcu = (t) => (t.exercicios ? (t.pela_rejeicao.length
+      ? `<strong>${t.pela_rejeicao.length} de ${t.exercicios}</strong> pela rejeição (${t.pela_rejeicao.join(', ')})`
+      : `0 de ${t.exercicios} pela rejeição`) : '—');
+    const val = (o, un) => (o.valor === null ? '—' : `${nf(o.valor < 1 && o.valor > -1 ? 2 : 1).format(o.valor)}${un}`);
+    const lin = d.governos.map((g) => `<tr><td>${nomeCurto(g.nome)} <span class="muted">${g.ano_inicio}–${g.ano_fim}</span></td>
+      <td>${tcu(g.tcu)}</td>
+      <td class="num">${val(g.corrupcao_percebida, '')}${g.corrupcao_percebida.margem ? ` <span class="muted">± ${nf(1).format(g.corrupcao_percebida.margem)}</span>` : ''}</td>
+      <td class="num">${val(g.estatais_primario, '% PIB')}</td><td class="num">${val(g.dividendos, '% PIB')}</td></tr>`).join('');
+    $('#tabela-integridade').innerHTML = `<table><thead><tr><th>Governo</th><th>Contas anuais: parecer do TCU</th>
+      <th class="num">Corrupção percebida (0–100, maior é melhor)</th><th class="num">Primário das estatais federais</th><th class="num">Dividendos ao Tesouro</th></tr></thead><tbody>${lin}</tbody></table>`;
+    $('#integridade-notas').innerHTML = Object.values(d.notas).map((n) => `<li>${n}</li>`).join('')
+      + `<li><a href="${d.fontes.tcu}" rel="noopener">Fonte do histórico de pareceres (Revista do TCU)</a></li>`;
+  } catch (e) {
+    $('#tabela-integridade').innerHTML = `<p class="vazio">Painel indisponível: ${e.message}</p>`;
+  }
+}
+
 async function initPergunte() {
   let st;
   try { st = await (await fetch('/api/v1/ask', { credentials: 'same-origin' })).json(); } catch { return; }
@@ -693,6 +732,7 @@ async function initPergunte() {
   state.rpesos = u.rpesos;
   buildControls();
   loadRanking();
+  loadLeituras();
   load();
   initPergunte();
 })();

@@ -268,3 +268,44 @@ test('variação sem dado no ano anterior à posse usa o último ano até 2 ante
   assert.ok(!M.oficial.componentes.some((c) => c.slug === 'pib-anual'));                  // PIB total não conta duas vezes
   assert.ok(M.relativo.componentes.some((c) => c.slug === 'mortalidade-infantil-wb'));
 });
+
+test('sorte ou política: mínimos quadrados recupera os coeficientes', async () => {
+  const { ols } = await import('../lib/sorte.js');
+  const X = [[1, 0], [2, 1], [3, 0], [4, 2], [5, 1], [6, 3]];
+  const y = X.map(([a, b]) => 0.5 + 2 * a - 1 * b);
+  const m = ols(y, X);
+  assert.deepEqual(m.beta.map((v) => Math.round(v * 1000) / 1000), [0.5, 2, -1]);
+  assert.equal(Math.round(m.r2 * 1000) / 1000, 1);
+});
+
+test('integridade: parecer do TCU por exercício (rejeição só em 2014 e 2015)', async () => {
+  const { pareceresTcu } = await import('../lib/integridade.js');
+  assert.deepEqual(pareceresTcu(2011, 2015).pela_rejeicao, [2014, 2015]);
+  assert.equal(pareceresTcu(2011, 2015).exercicios, 5);
+  assert.deepEqual(pareceresTcu(2003, 2010).pela_rejeicao, []);
+  assert.equal(pareceresTcu(2023, 2026).exercicios, 3);   // 2026 ainda sem parecer
+});
+
+test('grupos: governos em empate técnico ficam no mesmo grupo', opts, async () => {
+  const usados = ['pib-per-capita-wb', 'ipca-anual'];
+  const pesos = MODOS.oficial.componentes.map((c) => `${c.slug}:${usados.includes(c.slug) ? 1 : 0}`).join(',');
+  const r = await ranking(pool, { modo: 'oficial', pesos });
+  const ord = r.governos.filter((g) => g.posicao);
+  assert.equal(ord[0].grupo, 1);
+  for (let i = 1; i < ord.length; i++) {
+    const mesmo = ord[i].empate && ord[i].empate.includes(ord[i - 1].slug);
+    assert.equal(ord[i].grupo, ord[i - 1].grupo + (mesmo ? 0 : 1));
+  }
+});
+
+test('sorte e integridade respondem com a base de teste (sem inventar dado)', opts, async () => {
+  const { sorte } = await import('../lib/sorte.js');
+  const { integridade } = await import('../lib/integridade.js');
+  const s = await sorte(pool);
+  assert.equal(s.disponivel, false);                 // base de teste não tem termos de troca
+  assert.match(s.motivo, /faltam séries/);
+  const i = await integridade(pool);
+  assert.equal(i.governos.length, 6);
+  assert.equal(i.fora_da_nota, true);
+  assert.deepEqual(i.governos.find((g) => g.slug === 'dilma').tcu.pela_rejeicao, [2014, 2015]);
+});

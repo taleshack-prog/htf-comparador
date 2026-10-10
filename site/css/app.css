@@ -147,6 +147,12 @@ main { max-width: 1080px; margin: 0 auto; padding: 0 16px 48px; }
 .tabela th, .tabela td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linha); }
 .tabela td.num, .tabela th.num { text-align: right; }
 
+/* Leituras auxiliares: tabela sempre visível, com rolagem horizontal no celular */
+.tabela-simples { overflow-x: auto; font-size: 14px; margin: 8px 0; }
+.tabela-simples table { border-collapse: collapse; width: 100%; min-width: 560px; background: var(--papel); }
+.tabela-simples th, .tabela-simples td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linha); vertical-align: top; }
+.tabela-simples td.num, .tabela-simples th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
 /* Ranking ------------------------------------------------------------------ */
 .pesos { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px 20px; margin: 4px 0 14px; }
 .peso-bloco { grid-column: 1 / -1; margin: 6px 0 -2px; font-size: 13px; font-weight: 700; color: var(--chumbo); text-transform: uppercase; letter-spacing: .04em; }
