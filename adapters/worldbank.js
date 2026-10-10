@@ -125,3 +125,23 @@ export const worldbankSocial = {
       })));
   },
 };
+
+// Setor externo: dívida externa do país (governo, empresas e bancos) e investimento estrangeiro
+// direto que entra. Só para consulta; adaptador próprio pelo mesmo motivo do social.
+export const EXTERNO_SERIES = [
+  { indicator: 'divida-externa-wb',     codigo: 'DT.DOD.DECT.GN.ZS' },
+  { indicator: 'ide-entrada-wb',        codigo: 'BX.KLT.DINV.WD.GD.ZS' },
+];
+export const worldbankExterno = {
+  slug: 'worldbank-externo',
+  version: 'worldbank-externo@1',
+  async fetch({ fetchImpl, now, log }) {
+    return buscarSeries(EXTERNO_SERIES, { fetchImpl, now, log });
+  },
+  normalize(raw, { catalog, now }) {
+    return EXTERNO_SERIES.flatMap((s) =>
+      parseWb(raw[s.codigo], catalog.byIso3, now).map((o) => ({
+        ...o, indicator: s.indicator, url: wbPublicUrl(s.codigo),
+      })));
+  },
+};

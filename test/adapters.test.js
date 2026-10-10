@@ -206,3 +206,18 @@ test('Banco Mundial social: adaptador próprio, séries em paralelo', async () =
   const out = worldbankSocial.normalize(raw, { catalog: { byIso3: new Map([['BRA', 'brasil']]) }, now: NOW });
   assert.deepEqual(out.map((o) => o.indicator), ['pib-per-capita-wb', 'pobreza-wb', 'gini-wb', 'mortalidade-infantil-wb']);
 });
+
+test('Banco Mundial externo: dívida externa e investimento estrangeiro, só para consulta', async () => {
+  const { worldbankExterno, EXTERNO_SERIES } = await import('../adapters/worldbank.js');
+  const { ADAPTER_SLUGS } = await import('../adapters/index.js');
+  const { MODOS } = await import('../lib/ranking.js');
+  assert.ok(ADAPTER_SLUGS.includes('worldbank-externo'));
+  const { fakeFetch } = await import('./helpers.js');
+  const impl = fakeFetch([['indicator/', wbPayload([{ countryiso3code: 'BRA', date: '2023', value: 30.1 }])]]);
+  const raw = await worldbankExterno.fetch({ fetchImpl: impl, now: NOW, log: () => {} });
+  assert.equal(impl.calls.length, EXTERNO_SERIES.length);
+  const out = worldbankExterno.normalize(raw, { catalog: { byIso3: new Map([['BRA', 'brasil']]) }, now: NOW });
+  assert.deepEqual(out.map((o) => o.indicator), ['divida-externa-wb', 'ide-entrada-wb']);
+  // fora da nota em todos os modos
+  assert.ok(!Object.values(MODOS).some((m) => m.componentes.some((c) => ['divida-externa-wb', 'ide-entrada-wb'].includes(c.slug))));
+});
