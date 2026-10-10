@@ -26,9 +26,10 @@ export const SOCIAL_SERIES = [
 ];
 
 // Busca as séries em paralelo (cada uma com suas tentativas): o tempo total vira o da mais lenta.
-// A API do Banco Mundial devolve 502 em picos: 3 novas tentativas com espera crescente (3 s, 6 s, 12 s).
-async function buscarSeries(series, { fetchImpl, now, log, timeoutMs = 45000, esperaMs = 3000, desde }) {
-  const corpos = await Promise.all(series.map((s) => fetchJson(wbUrl(s.codigo, now.getUTCFullYear(), { desde }), { fetchImpl, log, timeoutMs, retries: 3, esperaMs })));
+// A API do Banco Mundial devolve 502 em picos: 2 novas tentativas com espera crescente (3 s, 6 s);
+// tempo-limite de 30 s por pedido, para os quatro adaptadores do Banco Mundial caberem na função.
+async function buscarSeries(series, { fetchImpl, now, log, timeoutMs = 30000, esperaMs = 3000, desde }) {
+  const corpos = await Promise.all(series.map((s) => fetchJson(wbUrl(s.codigo, now.getUTCFullYear(), { desde }), { fetchImpl, log, timeoutMs, retries: 2, esperaMs })));
   return Object.fromEntries(series.map((s, i) => [s.codigo, corpos[i]]));
 }
 

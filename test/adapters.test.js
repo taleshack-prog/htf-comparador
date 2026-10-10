@@ -231,3 +231,10 @@ test('termos de troca pelos deflatores: preço das exportações ÷ preço das i
   const out = termosDeTroca(raw, new Map([['BRA', 'brasil']]), NOW);
   assert.equal(out[0].valor, Math.round((1.2 / 1.1) * 100 * 10000) / 10000);
 });
+
+test('coleta: fontes diferentes em paralelo, mesmo servidor em sequência', async () => {
+  const { servidorDe } = await import('../lib/ingest.js');
+  assert.equal(servidorDe('worldbank-social'), servidorDe('worldbank-wgi'));
+  assert.notEqual(servidorDe('worldbank'), servidorDe('tesouro'));
+  assert.equal(servidorDe('ibge-pib'), 'ibge');
+});
