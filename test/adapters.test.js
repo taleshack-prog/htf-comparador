@@ -203,6 +203,7 @@ test('Banco Mundial social: adaptador próprio, séries em paralelo', async () =
   const impl = fakeFetch([['indicator/', wbPayload([{ countryiso3code: 'BRA', date: '2023', value: 3.8 }])]]);
   const raw = await worldbankSocial.fetch({ fetchImpl: impl, now: NOW, log: () => {} });
   assert.equal(impl.calls.length, SOCIAL_SERIES.length);
+  assert.ok(impl.calls.every((u) => u.includes('date=1990:')));   // ano-base de 1993 para o primeiro governo
   const out = worldbankSocial.normalize(raw, { catalog: { byIso3: new Map([['BRA', 'brasil']]) }, now: NOW });
   assert.deepEqual(out.map((o) => o.indicator), ['pib-per-capita-wb', 'pobreza-wb', 'gini-wb', 'mortalidade-infantil-wb']);
 });

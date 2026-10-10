@@ -27,14 +27,14 @@ export const SOCIAL_SERIES = [
 
 // Busca as séries em paralelo (cada uma com suas tentativas): o tempo total vira o da mais lenta.
 // A API do Banco Mundial devolve 502 em picos: 3 novas tentativas com espera crescente (3 s, 6 s, 12 s).
-async function buscarSeries(series, { fetchImpl, now, log, timeoutMs = 45000, esperaMs = 3000 }) {
-  const corpos = await Promise.all(series.map((s) => fetchJson(wbUrl(s.codigo, now.getUTCFullYear()), { fetchImpl, log, timeoutMs, retries: 3, esperaMs })));
+async function buscarSeries(series, { fetchImpl, now, log, timeoutMs = 45000, esperaMs = 3000, desde }) {
+  const corpos = await Promise.all(series.map((s) => fetchJson(wbUrl(s.codigo, now.getUTCFullYear(), { desde }), { fetchImpl, log, timeoutMs, retries: 3, esperaMs })));
   return Object.fromEntries(series.map((s, i) => [s.codigo, corpos[i]]));
 }
 
-export const wbUrl = (codigo, toYear, { paises = COUNTRIES, fonte } = {}) =>
+export const wbUrl = (codigo, toYear, { paises = COUNTRIES, fonte, desde = FIRST_YEAR } = {}) =>
   `https://api.worldbank.org/v2/country/${paises.join(';')}/indicator/${codigo}` +
-  `?format=json&date=${FIRST_YEAR}:${toYear}&per_page=2000${fonte ? `&source=${fonte}` : ''}`;
+  `?format=json&date=${desde}:${toYear}&per_page=2000${fonte ? `&source=${fonte}` : ''}`;
 export const wbPublicUrl = (codigo) => `https://data.worldbank.org/indicator/${codigo}`;
 
 export function parseWb(payload, byIso3, now = new Date()) {
@@ -114,9 +114,10 @@ export const worldbankWgi = {
 
 export const worldbankSocial = {
   slug: 'worldbank-social',
-  version: 'worldbank-social@1',
+  version: 'worldbank-social@2',
   async fetch({ fetchImpl, now, log }) {
-    return buscarSeries(SOCIAL_SERIES, { fetchImpl, now, log });
+    // desde 1990: pobreza e Gini não têm 1994 (sem PNAD); o ano-base do primeiro governo pode ser 1993
+    return buscarSeries(SOCIAL_SERIES, { fetchImpl, now, log, desde: 1990 });
   },
   normalize(raw, { catalog, now }) {
     return SOCIAL_SERIES.flatMap((s) =>
